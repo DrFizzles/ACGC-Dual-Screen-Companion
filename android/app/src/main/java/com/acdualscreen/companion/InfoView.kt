@@ -33,7 +33,7 @@ class InfoView(context: Context, compact: Boolean, showTabs: Boolean, onTab: (Pa
         return true
     }
 
-    override fun describe(s: GameState): String =
+    override fun describeInTown(s: GameState): String =
         if (s.playerName != null) "Info: ${s.playerName} of ${s.town ?: "?"}, ${money(s.wallet)} Bells" else "Info: ${s.status}"
 
     private fun money(v: Long?): String = v?.let { String.format(Locale.US, "%,d", it) } ?: "?"
@@ -51,7 +51,6 @@ class InfoView(context: Context, compact: Boolean, showTabs: Boolean, onTab: (Pa
             ac.font(40f, false, AcStyle.BROWN_SOFT, Paint.Align.CENTER)
             ac.line(c, "Visiting — player details are hidden", r.centerX(), gridTop + 120f, r.width())
         }
-        drawFooter(c, r)
     }
 
     private fun drawHeader(c: Canvas, r: RectF) {

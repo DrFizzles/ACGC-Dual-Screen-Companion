@@ -66,7 +66,7 @@ class TownMapView(context: Context, compact: Boolean, showTabs: Boolean, onTab: 
         return true
     }
 
-    override fun describe(s: GameState): String {
+    override fun describeInTown(s: GameState): String {
         val m = s.map ?: return "Map: ${s.status}"
         val p = m.player
         val acre = p?.let { m.layout?.acreLabel(it.blockX, it.blockZ) }

@@ -36,7 +36,7 @@ class TrackerView(context: Context, compact: Boolean, showTabs: Boolean, onTab: 
         return true
     }
 
-    override fun describe(s: GameState): String {
+    override fun describeInTown(s: GameState): String {
         val d = s.daily ?: return "Tracker: ${s.status}"
         val talked = d.talkedToday.values.count { it == true }
         return "Tracker: talked to $talked of ${s.villagers.size} neighbours, ${d.fossilsDug ?: "?"} of ${d.fossilMax} fossils dug"

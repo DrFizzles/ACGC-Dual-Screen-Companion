@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -26,6 +27,12 @@ abstract class AcPage(
     private val page: PanelTab,
     private val onTab: (PanelTab) -> Unit,
 ) : View(context) {
+
+    private companion object {
+        const val DOT_MS = 450L
+        const val BADGE_BG = 0xFF9BDCF7.toInt()
+        const val BADGE_RING = 0xFF2F7CC0.toInt()
+    }
 
     protected val ac = AcPainter(context)
     @JvmField protected var state: GameState = GameState.of(Phase.CONNECTING, "Starting…")
@@ -63,7 +70,7 @@ abstract class AcPage(
     fun setState(s: GameState) {
         if (accept(s)) {
             state = s
-            contentDescription = describe(s)
+            contentDescription = if (s.phase == Phase.IN_TOWN) describeInTown(s) else describe(s)
             invalidate()
         }
     }
@@ -75,7 +82,7 @@ abstract class AcPage(
     }
 
     /** A short spoken summary of the page (TalkBack). */
-    protected open fun describe(s: GameState): String = s.status
+    protected open fun describeInTown(s: GameState): String = s.status
 
     override fun onDraw(canvas: Canvas) {
         if (width == 0 || height == 0) return
@@ -115,37 +122,53 @@ abstract class AcPage(
         PanelTab.TRACKER -> "Tracker"
     }
 
-    /** Not in town (or not connected): a centred title and detail in the card. */
+    /**
+     * The waiting screen, shown on every page until the game's data is in: the leaf badge over a
+     * speech bubble with a short title and one friendly line, and three dots that pulse while it
+     * waits. Deliberately no connection details or scene names.
+     */
     private fun drawMessage(c: Canvas, r: RectF) {
-        val s = state
-        val title = when (s.phase) {
-            Phase.SPEC_MISSING -> "Spec missing"
-            Phase.CONNECTING -> "Connecting…"
-            Phase.NO_DOLPHIN -> "Waiting for Dolphin…"
-            Phase.WRONG_GAME -> "Wrong game"
-            Phase.NOT_IN_TOWN -> "Not in town"
-            Phase.IN_TOWN -> ""
+        val w = waitingCopy(state.phase)
+        val cx = r.centerX()
+        val bubbleTop = r.top + 236f
+        val bubbleBottom = bubbleTop + (if (w.waiting) 360f else 300f)
+        ac.shadowBox(c, cx - 430f, bubbleTop, cx + 430f, bubbleBottom, 72f, AcStyle.CREAM, AcStyle.ORANGE, 8f, 0x33A3150F, 8f)
+
+        // Leaf badge, overlapping the bubble's top edge.
+        val by = bubbleTop - 30f
+        ac.ringCircle(c, cx, by, 108f, if (w.error) 0xFFFFE1DC.toInt() else BADGE_BG, if (w.error) AcStyle.ALERT else BADGE_RING, 9f)
+        ac.leaf(c, cx - 66f, by - 66f, 132f)
+
+        ac.font(68f, true, if (w.error) AcStyle.LOAN else AcStyle.BROWN, Paint.Align.CENTER)
+        ac.line(c, w.title, cx, bubbleTop + 148f, 800f)
+        ac.font(38f, false, AcStyle.BROWN_SOFT, Paint.Align.CENTER)
+        ac.line(c, w.line, cx, bubbleTop + 218f, 780f)
+
+        if (w.waiting) {
+            val step = ((SystemClock.uptimeMillis() / DOT_MS) % 3).toInt()
+            for (i in 0 until 3) {
+                val on = i == step
+                ac.fill.color = if (on) AcStyle.ORANGE else 0xFFF6D29A.toInt()
+                c.drawCircle(cx + (i - 1) * 48f, bubbleTop + 296f, if (on) 14f else 11f, ac.fill)
+            }
+            postInvalidateDelayed(DOT_MS)
         }
-        val detail = when (s.phase) {
-            Phase.NOT_IN_TOWN -> s.scene?.let { "Scene: $it" } ?: "Load your town to see live data"
-            Phase.NO_DOLPHIN -> "Start Dolphin and boot Animal Crossing"
-            else -> s.status
-        }
-        val cy = r.centerY() - 40f
-        ac.font(84f, true, if (s.phase == Phase.WRONG_GAME || s.phase == Phase.SPEC_MISSING) AcStyle.LOAN else AcStyle.BROWN, Paint.Align.CENTER)
-        ac.line(c, title, r.centerX(), cy, r.width())
-        ac.font(40f, false, AcStyle.BROWN_SOFT, Paint.Align.CENTER)
-        ac.line(c, detail, r.centerX(), cy + 90f, r.width())
-        drawFooter(c, r)
     }
 
-    /** Connection details along the bottom of the card. */
-    protected fun drawFooter(c: Canvas, r: RectF) {
-        val text = listOf(state.status, footer).filter { it.isNotBlank() }.joinToString("  ·  ")
-        if (text.isEmpty()) return
-        ac.font(24f, false, AcStyle.BROWN_SOFT, Paint.Align.RIGHT)
-        ac.line(c, text, r.right, r.bottom - 6f, r.width())
+    private class Waiting(val title: String, val line: String, val waiting: Boolean, val error: Boolean)
+
+    private fun waitingCopy(p: Phase): Waiting = when (p) {
+        Phase.CONNECTING, Phase.NO_DOLPHIN ->
+            Waiting("Waiting for Dolphin", "Start Animal Crossing in dolphin-lnk to connect", true, false)
+        Phase.NOT_IN_TOWN, Phase.IN_TOWN ->
+            Waiting("Waiting for your town", "Load your save to see what's happening in town", true, false)
+        Phase.WRONG_GAME ->
+            Waiting("Game not supported", "AC Panel works with Animal Crossing (USA)", false, true)
+        Phase.SPEC_MISSING ->
+            Waiting("Something's missing", "Reinstall AC Panel to restore its game data", false, true)
     }
+
+    private fun describe(s: GameState): String = waitingCopy(s.phase).let { "${it.title}. ${it.line}" }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(e: MotionEvent): Boolean {
