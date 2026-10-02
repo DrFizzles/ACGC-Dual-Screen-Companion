@@ -1,0 +1,30 @@
+# Separate checkout of the Dolphin fork (https://github.com/EmuLnk/dolphin-lnk); not part of this repo
+dolphin-lnk/
+
+# Built / downloaded binaries
+apks/
+*.apk
+*.aab
+
+# Game screenshots, disc images and memory dumps never belong in the repo
+ac-map-reference.png
+*.iso
+*.rvz
+*.gcm
+*.raw
+*.bin
+
+# Python
+__pycache__/
+*.pyc
+
+# Android / Gradle (see also android/.gitignore)
+.gradle/
+local.properties
+.idea/
+.kotlin/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/

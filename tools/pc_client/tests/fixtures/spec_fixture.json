@@ -1,0 +1,658 @@
+{
+ "schema": 1,
+ "_comment": "TEST FIXTURE for tools/pc_client tests. Mirrors the schema of spec/ac_memory_map.json; values are taken from the task brief / decomp headers but this file is NOT the source of truth.",
+ "game": {
+  "id": "GAFE01",
+  "id_addr": "0x80000000",
+  "revision": 0,
+  "revision_addr": "0x80000007"
+ },
+ "bases": {
+  "common_data": "0x81266400",
+  "gamePT": "0x812F31B8",
+  "play_main": "0x8062B370"
+ },
+ "globals": [
+  {
+   "key": "scene_no",
+   "base": "common_data",
+   "offset": "0x14",
+   "type": "s32",
+   "enum": "scene_no",
+   "status": "header_derived"
+  },
+  {
+   "key": "town_name",
+   "base": "common_data",
+   "offset": "0x9120",
+   "type": "str",
+   "len": 8,
+   "status": "verified_live"
+  },
+  {
+   "key": "player_no",
+   "base": "common_data",
+   "offset": "0x26003",
+   "type": "u8",
+   "status": "header_derived",
+   "note": "4 = foreigner"
+  },
+  {
+   "key": "rtc_sec",
+   "base": "common_data",
+   "offset": "0x26120",
+   "type": "u8",
+   "status": "header_derived"
+  },
+  {
+   "key": "rtc_min",
+   "base": "common_data",
+   "offset": "0x26121",
+   "type": "u8",
+   "status": "header_derived"
+  },
+  {
+   "key": "rtc_hour",
+   "base": "common_data",
+   "offset": "0x26122",
+   "type": "u8",
+   "status": "verified_live"
+  },
+  {
+   "key": "rtc_day",
+   "base": "common_data",
+   "offset": "0x26123",
+   "type": "u8",
+   "status": "header_derived"
+  },
+  {
+   "key": "rtc_weekday",
+   "base": "common_data",
+   "offset": "0x26124",
+   "type": "u8",
+   "enum": "weekday",
+   "status": "header_derived"
+  },
+  {
+   "key": "rtc_month",
+   "base": "common_data",
+   "offset": "0x26125",
+   "type": "u8",
+   "status": "header_derived"
+  },
+  {
+   "key": "rtc_year",
+   "base": "common_data",
+   "offset": "0x26126",
+   "type": "u16",
+   "status": "verified_live"
+  },
+  {
+   "key": "now_private",
+   "base": "common_data",
+   "offset": "0x2613C",
+   "type": "ptr",
+   "status": "header_derived"
+  },
+  {
+   "key": "weather",
+   "base": "common_data",
+   "offset": "0x2666C",
+   "type": "s16",
+   "enum": "weather",
+   "status": "header_derived"
+  },
+  {
+   "key": "weather_intensity",
+   "base": "common_data",
+   "offset": "0x2666E",
+   "type": "s16",
+   "enum": "weather_intensity",
+   "status": "header_derived"
+  },
+  {
+   "key": "kabu_prices",
+   "base": "common_data",
+   "offset": "0x20480",
+   "type": "u16[]",
+   "count": 7,
+   "status": "ar_code",
+   "note": "index 0 = Sunday"
+  },
+  {
+   "key": "kabu_trade_market",
+   "base": "common_data",
+   "offset": "0x2048E",
+   "type": "u16",
+   "enum": "kabu_trend",
+   "status": "header_derived"
+  },
+  {
+   "key": "town_fruit",
+   "base": "common_data",
+   "offset": "0x20688",
+   "type": "u16",
+   "item_id": true,
+   "status": "header_derived"
+  }
+ ],
+ "players": {
+  "base": "common_data",
+  "offset": "0x20",
+  "stride": "0x2440",
+  "count": 4,
+  "fields": [
+   {
+    "key": "name",
+    "offset": "0x0",
+    "type": "str",
+    "len": 8,
+    "status": "verified_live"
+   },
+   {
+    "key": "town_name",
+    "offset": "0x8",
+    "type": "str",
+    "len": 8,
+    "status": "header_derived"
+   },
+   {
+    "key": "player_id",
+    "offset": "0x10",
+    "type": "u16",
+    "status": "header_derived"
+   },
+   {
+    "key": "gender",
+    "offset": "0x14",
+    "type": "s8",
+    "enum": "gender",
+    "status": "ar_code"
+   },
+   {
+    "key": "face",
+    "offset": "0x15",
+    "type": "s8",
+    "status": "ar_code"
+   },
+   {
+    "key": "pockets",
+    "offset": "0x68",
+    "type": "u16[]",
+    "count": 15,
+    "status": "header_derived",
+    "item_id": true
+   },
+   {
+    "key": "item_conditions",
+    "offset": "0x88",
+    "type": "u32",
+    "status": "header_derived",
+    "note": "2 bits per pocket slot",
+    "slot_enum": "item_condition"
+   },
+   {
+    "key": "wallet",
+    "offset": "0x8C",
+    "type": "u32",
+    "status": "verified_live"
+   },
+   {
+    "key": "loan",
+    "offset": "0x90",
+    "type": "u32",
+    "status": "ar_code"
+   },
+   {
+    "key": "equipment",
+    "offset": "0x4A4",
+    "type": "u16",
+    "item_id": true,
+    "status": "computed"
+   },
+   {
+    "key": "exists",
+    "offset": "0x1086",
+    "type": "u8",
+    "status": "header_derived"
+   },
+   {
+    "key": "bank",
+    "offset": "0x122C",
+    "type": "u32",
+    "status": "ar_code"
+   }
+  ]
+ },
+ "villagers": {
+  "base": "common_data",
+  "offset": "0x17438",
+  "stride": "0x988",
+  "count": 15,
+  "fields": [
+   {
+    "key": "npc_id",
+    "offset": "0x0",
+    "type": "u16",
+    "status": "ar_code",
+    "note": "valid if (id & 0xF000) == 0xE000"
+   },
+   {
+    "key": "looks",
+    "offset": "0xD",
+    "type": "u8",
+    "status": "header_derived",
+    "enum": "looks"
+   },
+   {
+    "key": "cloth",
+    "offset": "0x8E4",
+    "type": "u16",
+    "status": "ar_code",
+    "item_id": true
+   }
+  ]
+ },
+ "enums": {
+  "weather": {
+   "0": "Clear",
+   "1": "Rain",
+   "2": "Snow",
+   "3": "Blossoms",
+   "4": "Leaves"
+  },
+  "weather_intensity": {
+   "0": "None",
+   "1": "Light",
+   "2": "Normal",
+   "3": "Heavy"
+  },
+  "weekday": {
+   "0": "Sun",
+   "1": "Mon",
+   "2": "Tue",
+   "3": "Wed",
+   "4": "Thu",
+   "5": "Fri",
+   "6": "Sat"
+  },
+  "scene_no": {
+   "6": "Villager house",
+   "7": "Outdoors",
+   "19": "Player select",
+   "33": "Title demo"
+  },
+  "gender": {
+   "0": "Boy",
+   "1": "Girl"
+  },
+  "item_condition": {
+   "0": "Normal",
+   "1": "Wrapped",
+   "2": "Quest"
+  },
+  "kabu_trend": {
+   "0": "Spike",
+   "1": "Random",
+   "2": "Falling"
+  },
+  "looks": {
+   "0": "Normal",
+   "1": "Peppy",
+   "2": "Lazy",
+   "3": "Jock",
+   "4": "Cranky",
+   "5": "Snooty"
+  }
+ },
+ "charmap": [
+  "¡",
+  "¿",
+  "Ä",
+  "À",
+  "Á",
+  "Â",
+  "Ã",
+  "Å",
+  "Ç",
+  "È",
+  "É",
+  "Ê",
+  "Ë",
+  "Ì",
+  "Í",
+  "Î",
+  "Ï",
+  "Ð",
+  "Ñ",
+  "Ò",
+  "Ó",
+  "Ô",
+  "Õ",
+  "Ö",
+  "Ø",
+  "Ù",
+  "Ú",
+  "Û",
+  "Ü",
+  "ß",
+  "Þ",
+  "à",
+  " ",
+  "!",
+  "\"",
+  "á",
+  "â",
+  "%",
+  "&",
+  "'",
+  "(",
+  ")",
+  "~",
+  "♥",
+  ",",
+  "-",
+  ".",
+  "♪",
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  ":",
+  "🌢",
+  "<",
+  "=",
+  ">",
+  "?",
+  "@",
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L",
+  "M",
+  "N",
+  "O",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "V",
+  "W",
+  "X",
+  "Y",
+  "Z",
+  "ã",
+  "💢",
+  "ä",
+  "å",
+  "_",
+  "ç",
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "g",
+  "h",
+  "i",
+  "j",
+  "k",
+  "l",
+  "m",
+  "n",
+  "o",
+  "p",
+  "q",
+  "r",
+  "s",
+  "t",
+  "u",
+  "v",
+  "w",
+  "x",
+  "y",
+  "z",
+  "è",
+  "é",
+  "ê",
+  "ë",
+  "",
+  "�",
+  "ì",
+  "í",
+  "î",
+  "ï",
+  "•",
+  "ð",
+  "ñ",
+  "ò",
+  "ó",
+  "ô",
+  "õ",
+  "ö",
+  "⁰",
+  "ù",
+  "ú",
+  "ー",
+  "û",
+  "ü",
+  "ý",
+  "ÿ",
+  "þ",
+  "Ý",
+  "¦",
+  "§",
+  "ḏ",
+  "ṉ",
+  "‖",
+  "µ",
+  "³",
+  "²",
+  "¹",
+  "¯",
+  "¬",
+  "Æ",
+  "æ",
+  "„",
+  "»",
+  "«",
+  "☀",
+  "☁",
+  "☂",
+  "🌬",
+  "☃",
+  "∋",
+  "∈",
+  "/",
+  "∞",
+  "○",
+  "🗙",
+  "□",
+  "△",
+  "+",
+  "⚡",
+  "♂",
+  "♀",
+  "🍀",
+  "★",
+  "💀",
+  "😮",
+  "😄",
+  "😣",
+  "😠",
+  "😃",
+  "×",
+  "➗",
+  "🔨",
+  "🎀",
+  "✉",
+  "💰",
+  "🐾",
+  "🐶",
+  "🐱",
+  "🐰",
+  "🐦",
+  "🐮",
+  "🐷",
+  "\n",
+  "🐟",
+  "🐞",
+  ";",
+  "#",
+  "Ò",
+  "Ó",
+  "⚷",
+  "Õ",
+  "Ö",
+  "×",
+  "Ø",
+  "Ù",
+  "Ú",
+  "Û",
+  "Ü",
+  "Ỳ",
+  "ꟓ",
+  "ß",
+  "à",
+  "á",
+  "â",
+  "ã",
+  "ä",
+  "å",
+  "æ",
+  "ç",
+  "è",
+  "é",
+  "ê",
+  "ë",
+  "ì",
+  "í",
+  "î",
+  "ï",
+  "ð",
+  "ñ",
+  "ò",
+  "ó",
+  "ô",
+  "õ",
+  "ö",
+  "÷",
+  "ø",
+  "ù",
+  "ú",
+  "û",
+  "ü",
+  "ý",
+  "þ",
+  "ÿ"
+ ],
+ "item_names": {
+  "entry_len": 16,
+  "status": "computed",
+  "empty_ids": [
+   "0x0000"
+  ],
+  "ranges": [
+   {
+    "id_min": "0x1000",
+    "id_max": "0x1FFF",
+    "table_addr": "0x808C3910",
+    "shift": 2,
+    "note": "ftrName_table"
+   },
+   {
+    "id_min": "0x2000",
+    "id_max": "0x20FF",
+    "table_addr": "0x808BF660",
+    "shift": 0,
+    "note": "itemName_paper"
+   },
+   {
+    "id_min": "0x2200",
+    "id_max": "0x225B",
+    "table_addr": "0x808C06A0",
+    "shift": 0,
+    "note": "itemName_tool"
+   },
+   {
+    "id_min": "0x2400",
+    "id_max": "0x24FE",
+    "table_addr": "0x808C0EE0",
+    "shift": 0,
+    "note": "itemName_cloth"
+   },
+   {
+    "id_min": "0x3000",
+    "id_max": "0x33C7",
+    "table_addr": "0x808C7910",
+    "shift": 2,
+    "note": "ftrName2_table"
+   }
+  ],
+  "runtime_check": {
+   "pointer_table_addr": "0x80655CB4",
+   "expected": [
+    "0x808BF660",
+    "0x808C0660",
+    "0x808C06A0",
+    "0x808C0C60"
+   ],
+   "note": "fixture: first 4 of the real spec's 16 pointers"
+  }
+ },
+ "extras": {
+  "npc_name_cache": {
+   "addr": "0x8129A3E8",
+   "status": "computed_unverified",
+   "fields": [
+    {
+     "key": "npc_id",
+     "offset": "0x0",
+     "type": "u16"
+    },
+    {
+     "key": "name",
+     "offset": "0x2",
+     "type": "str",
+     "len": 8
+    },
+    {
+     "key": "npc_type",
+     "offset": "0xA",
+     "type": "u8"
+    }
+   ]
+  }
+ },
+ "validity": {
+  "rules": [
+   "BE string at game.id_addr (6 bytes) == game.id and byte at revision_addr == revision",
+   "p = BE32(bases.gamePT) in 0x80000000-0x817FFFFF and BE32(p+4) == bases.play_main => in gameplay",
+   "now_private within players array => current player index, else visiting/foreign (globals only)",
+   "current player's exists flag must be set",
+   "scene_no must not be in validity.not_in_town_scenes",
+   "read twice and reject impossible values (wallet > 99999, kabu price > 2000, ...)"
+  ],
+  "not_in_town_scenes": [
+   19,
+   33
+  ]
+ }
+}

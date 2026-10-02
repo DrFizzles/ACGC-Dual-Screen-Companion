@@ -1,0 +1,611 @@
+{
+ "schema": 1,
+ "game": {
+  "id": "GAFE01",
+  "id_addr": "0x80000000",
+  "revision": 0,
+  "revision_addr": "0x80000007"
+ },
+ "bases": {
+  "common_data": "0x81266400",
+  "gamePT": "0x812F31B8",
+  "play_main": "0x8062B370"
+ },
+ "globals": [
+  {
+   "key": "scene_no",
+   "base": "common_data",
+   "offset": "0x14",
+   "type": "s32",
+   "status": "computed",
+   "enum": "scene_no"
+  },
+  {
+   "key": "player_no",
+   "base": "common_data",
+   "offset": "0x26003",
+   "type": "u8",
+   "status": "computed"
+  },
+  {
+   "key": "now_private",
+   "base": "common_data",
+   "offset": "0x2613C",
+   "type": "ptr",
+   "status": "computed"
+  },
+  {
+   "key": "town_name",
+   "base": "common_data",
+   "offset": "0x9120",
+   "type": "str",
+   "status": "verified_live",
+   "len": 8
+  },
+  {
+   "key": "rtc_sec",
+   "base": "common_data",
+   "offset": "0x26120",
+   "type": "u8",
+   "status": "computed"
+  },
+  {
+   "key": "rtc_min",
+   "base": "common_data",
+   "offset": "0x26121",
+   "type": "u8",
+   "status": "computed"
+  },
+  {
+   "key": "rtc_hour",
+   "base": "common_data",
+   "offset": "0x26122",
+   "type": "u8",
+   "status": "verified_live"
+  },
+  {
+   "key": "rtc_day",
+   "base": "common_data",
+   "offset": "0x26123",
+   "type": "u8",
+   "status": "computed"
+  },
+  {
+   "key": "rtc_weekday",
+   "base": "common_data",
+   "offset": "0x26124",
+   "type": "u8",
+   "status": "computed",
+   "enum": "weekday"
+  },
+  {
+   "key": "rtc_month",
+   "base": "common_data",
+   "offset": "0x26125",
+   "type": "u8",
+   "status": "computed",
+   "enum": "month"
+  },
+  {
+   "key": "rtc_year",
+   "base": "common_data",
+   "offset": "0x26126",
+   "type": "u16",
+   "status": "verified_live"
+  },
+  {
+   "key": "weather",
+   "base": "common_data",
+   "offset": "0x2666C",
+   "type": "s16",
+   "status": "computed",
+   "enum": "weather"
+  },
+  {
+   "key": "weather_intensity",
+   "base": "common_data",
+   "offset": "0x2666E",
+   "type": "s16",
+   "status": "computed",
+   "enum": "weather_intensity"
+  },
+  {
+   "key": "kabu_prices",
+   "base": "common_data",
+   "offset": "0x20480",
+   "type": "u16[]",
+   "status": "ar_code",
+   "count": 7
+  },
+  {
+   "key": "town_fruit",
+   "base": "common_data",
+   "offset": "0x20688",
+   "type": "u16",
+   "status": "computed",
+   "item_id": true
+  },
+  {
+   "key": "fixture_extra",
+   "base": "common_data",
+   "offset": "0x30000",
+   "type": "u16",
+   "status": "computed",
+   "note": "test-only extra global"
+  },
+  {
+   "key": "fixture_abs",
+   "addr": "0x80001000",
+   "type": "u8",
+   "status": "computed",
+   "note": "test-only absolute address"
+  },
+  {
+   "key": "fixture_badtype",
+   "base": "common_data",
+   "offset": "0x0",
+   "type": "u64",
+   "status": "computed",
+   "note": "must be skipped with a warning"
+  }
+ ],
+ "players": {
+  "base": "common_data",
+  "offset": "0x20",
+  "stride": "0x2440",
+  "count": 4,
+  "fields": [
+   {
+    "key": "name",
+    "offset": "0x0",
+    "type": "str",
+    "status": "verified_live",
+    "len": 8
+   },
+   {
+    "key": "town_name",
+    "offset": "0x8",
+    "type": "str",
+    "status": "computed",
+    "len": 8
+   },
+   {
+    "key": "exists",
+    "offset": "0x1086",
+    "type": "u8",
+    "status": "header_derived"
+   },
+   {
+    "key": "pockets",
+    "offset": "0x68",
+    "type": "u16[]",
+    "status": "computed",
+    "count": 15
+   },
+   {
+    "key": "item_conditions",
+    "offset": "0x88",
+    "type": "u32",
+    "status": "computed"
+   },
+   {
+    "key": "wallet",
+    "offset": "0x8C",
+    "type": "u32",
+    "status": "verified_live"
+   },
+   {
+    "key": "loan",
+    "offset": "0x90",
+    "type": "u32",
+    "status": "ar_code"
+   },
+   {
+    "key": "bank",
+    "offset": "0x122C",
+    "type": "u32",
+    "status": "ar_code"
+   },
+   {
+    "key": "equipment",
+    "offset": "0x4A4",
+    "type": "u16",
+    "status": "computed",
+    "item_id": true
+   },
+   {
+    "key": "gender",
+    "offset": "0x14",
+    "type": "s8",
+    "status": "computed",
+    "enum": "gender"
+   }
+  ]
+ },
+ "villagers": {
+  "base": "common_data",
+  "offset": "0x17438",
+  "stride": "0x988",
+  "count": 15,
+  "fields": [
+   {
+    "key": "npc_id",
+    "offset": "0x0",
+    "type": "u16",
+    "status": "ar_code"
+   },
+   {
+    "key": "town_name",
+    "offset": "0x4",
+    "type": "str",
+    "status": "computed",
+    "len": 8
+   }
+  ]
+ },
+ "enums": {
+  "weather": {
+   "0": "Clear",
+   "1": "Rain",
+   "2": "Snow",
+   "3": "Cherry blossoms",
+   "4": "Leaves"
+  },
+  "weather_intensity": {
+   "0": "None",
+   "1": "Light",
+   "2": "Medium",
+   "3": "Heavy"
+  },
+  "weekday": {
+   "0": "Sunday",
+   "1": "Monday",
+   "2": "Tuesday",
+   "3": "Wednesday",
+   "4": "Thursday",
+   "5": "Friday",
+   "6": "Saturday"
+  },
+  "scene_no": {
+   "0": "Test scene A",
+   "7": "Test scene B",
+   "15": "Test demo scene"
+  },
+  "month": {
+   "1": "January",
+   "2": "February",
+   "3": "March",
+   "4": "April",
+   "5": "May",
+   "6": "June",
+   "7": "July",
+   "8": "August",
+   "9": "September",
+   "10": "October",
+   "11": "November",
+   "12": "December"
+  },
+  "gender": {
+   "0": "A",
+   "1": "B"
+  }
+ },
+ "charmap": [
+  "¡",
+  "¿",
+  "Ä",
+  "À",
+  "Á",
+  "Â",
+  "Ã",
+  "Å",
+  "Ç",
+  "È",
+  "É",
+  "Ê",
+  "Ë",
+  "Ì",
+  "Í",
+  "Î",
+  "Ï",
+  "Ð",
+  "Ñ",
+  "Ò",
+  "Ó",
+  "Ô",
+  "Õ",
+  "Ö",
+  "Ø",
+  "Ù",
+  "Ú",
+  "Û",
+  "Ü",
+  "ß",
+  "Þ",
+  "à",
+  " ",
+  "!",
+  "\"",
+  "á",
+  "â",
+  "%",
+  "&",
+  "'",
+  "(",
+  ")",
+  "~",
+  "♥",
+  ",",
+  "-",
+  ".",
+  "♪",
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  ":",
+  "🌢",
+  "<",
+  "=",
+  ">",
+  "?",
+  "@",
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L",
+  "M",
+  "N",
+  "O",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "V",
+  "W",
+  "X",
+  "Y",
+  "Z",
+  "ã",
+  "💢",
+  "ä",
+  "å",
+  "_",
+  "ç",
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "g",
+  "h",
+  "i",
+  "j",
+  "k",
+  "l",
+  "m",
+  "n",
+  "o",
+  "p",
+  "q",
+  "r",
+  "s",
+  "t",
+  "u",
+  "v",
+  "w",
+  "x",
+  "y",
+  "z",
+  "è",
+  "é",
+  "ê",
+  "ë",
+  "",
+  "�",
+  "ì",
+  "í",
+  "î",
+  "ï",
+  "•",
+  "ð",
+  "ñ",
+  "ò",
+  "ó",
+  "ô",
+  "õ",
+  "ö",
+  "⁰",
+  "ù",
+  "ú",
+  "ー",
+  "û",
+  "ü",
+  "ý",
+  "ÿ",
+  "þ",
+  "Ý",
+  "¦",
+  "§",
+  "ḏ",
+  "ṉ",
+  "‖",
+  "µ",
+  "³",
+  "²",
+  "¹",
+  "¯",
+  "¬",
+  "Æ",
+  "æ",
+  "„",
+  "»",
+  "«",
+  "☀",
+  "☁",
+  "☂",
+  "🌬",
+  "☃",
+  "∋",
+  "∈",
+  "/",
+  "∞",
+  "○",
+  "🗙",
+  "□",
+  "△",
+  "+",
+  "⚡",
+  "♂",
+  "♀",
+  "🍀",
+  "★",
+  "💀",
+  "😮",
+  "😄",
+  "😣",
+  "😠",
+  "😃",
+  "×",
+  "➗",
+  "🔨",
+  "🎀",
+  "✉",
+  "💰",
+  "🐾",
+  "🐶",
+  "🐱",
+  "🐰",
+  "🐦",
+  "🐮",
+  "🐷",
+  "\n",
+  "🐟",
+  "🐞",
+  ";",
+  "#",
+  "Ò",
+  "Ó",
+  "⚷",
+  "Õ",
+  "Ö",
+  "×",
+  "Ø",
+  "Ù",
+  "Ú",
+  "Û",
+  "Ü",
+  "Ỳ",
+  "ꟓ",
+  "ß",
+  "à",
+  "á",
+  "â",
+  "ã",
+  "ä",
+  "å",
+  "æ",
+  "ç",
+  "è",
+  "é",
+  "ê",
+  "ë",
+  "ì",
+  "í",
+  "î",
+  "ï",
+  "ð",
+  "ñ",
+  "ò",
+  "ó",
+  "ô",
+  "õ",
+  "ö",
+  "÷",
+  "ø",
+  "ù",
+  "ú",
+  "û",
+  "ü",
+  "ý",
+  "þ",
+  "ÿ"
+ ],
+ "item_names": {
+  "entry_len": 16,
+  "status": "fixture",
+  "empty_ids": [
+   "0x0000"
+  ],
+  "runtime_check": {
+   "pointer_table_addr": "0x80720000",
+   "expected": [
+    "0x80700000",
+    "0x80710000"
+   ]
+  },
+  "ranges": [
+   {
+    "id_min": "0x1000",
+    "id_max": "0x1FFF",
+    "table_addr": "0x80700000",
+    "shift": 2,
+    "note": "fixture: 4 ids per name"
+   },
+   {
+    "id_min": "0x2000",
+    "id_max": "0x20FF",
+    "table_addr": "0x80710000",
+    "shift": 0,
+    "note": "fixture: one id per name"
+   }
+  ]
+ },
+ "extras": {
+  "npc_name_cache": {
+   "addr": "0x8129A3E8",
+   "status": "fixture",
+   "fields": [
+    {
+     "key": "npc_id",
+     "offset": "0x0",
+     "type": "u16",
+     "status": "computed"
+    },
+    {
+     "key": "name",
+     "offset": "0x2",
+     "type": "str",
+     "status": "computed",
+     "len": 8
+    }
+   ]
+  }
+ },
+ "validity": {
+  "rules": [
+   "fixture rules mirror the real spec"
+  ],
+  "not_in_town_scenes": [
+   15,
+   16
+  ]
+ }
+}
