@@ -18,8 +18,8 @@ import java.util.Locale
  * villager art is not read from RAM.
  */
 @SuppressLint("ViewConstructor")
-class TrackerView(context: Context, compact: Boolean, showTabs: Boolean, onTab: (PanelTab) -> Unit) :
-    AcPage(context, compact, showTabs, PanelTab.TRACKER, onTab) {
+class TrackerView(context: Context, onTab: (PanelTab) -> Unit, onSettings: () -> Unit) :
+    AcPage(context, PanelTab.TRACKER, onTab, onSettings) {
 
     private companion object {
         val MONTHS = arrayOf("Jan.", "Feb.", "Mar.", "Apr.", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec.")

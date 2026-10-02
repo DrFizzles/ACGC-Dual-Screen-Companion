@@ -1,12 +1,14 @@
-# AC Panel (Android companion, proof of concept)
+# AC Duo (Android companion)
 
-AC Panel shows live Animal Crossing data on the AYN Thor's bottom screen while the game runs in Dolphin on the top screen. It supports only the USA GameCube release (GAFE01, revision 0).
+AC Duo shows live Animal Crossing data next to the game while it runs in Dolphin: on the AYN Thor's bottom screen, or in split screen beside Dolphin on a phone. It supports only the USA GameCube release (GAFE01, revision 0).
 
-It reads emulated memory from the **dolphin-lnk** Dolphin fork over its EmuLink UDP server (port 55355) and draws the data in an overlay window on the secondary display. The data shown is the town, player, date and time, weather, Bells, pockets, turnip prices and villagers. A second page shows the **town map** the way the game's map screen draws it: the 5x6 acre images with their buildings, the villager houses, and the player's position. The app only reads memory and never writes it.
+It reads emulated memory from the **dolphin-lnk** Dolphin fork over its EmuLink UDP server (port 55355) and only ever reads, never writes. It has three pages in the style of the game's menus:
 
-On a phone or foldable without a second display, the panel can also run as an ordinary window in **split screen** next to Dolphin (see *Panel window*).
+- **Info**: season, date, time, weather; player, town and town fruit; Bells, savings and the house loan; held item, birthday, today's fortune.
+- **Map**: the town map as the game's map screen draws it (acre images with their buildings, villager houses, the game's player figure) and the neighbours living in your acre.
+- **Tracker**: neighbours talked to today, fossils dug up today, and the glowing spot. Never where anything is buried.
 
-Every address and offset comes from `../spec/ac_memory_map.json`, the shared memory map. That file is packaged into the APK at build time and is the only asset. No item names, villager names, images or other game data ship with the app. Item names are read from the game's own tables in emulated RAM. Villager names are picked up from the game's name cache after you talk to a villager. The map's acre images and house icon are read from RAM and decoded at runtime (`GcTexture.kt`); they are never stored.
+Every address and offset comes from `../spec/ac_memory_map.json`, the shared memory map, packaged into the APK at build time. Item names, the map art and the player and house icons are read from the game's memory and decoded at runtime; they are never stored. The one piece of game data that ships with the app is `assets/villager_names.json` (see *Villager names*).
 
 ## Build
 
@@ -34,19 +36,16 @@ Enable USB debugging on the Thor (Settings → About → tap Build number 7 time
 adb install -r app\build\outputs\apk\debug\app-debug.apk
 ```
 
-## First run
+## Using it
 
-1. Open **AC Panel**.
-2. Tap **Grant overlay permission** and allow "Display over other apps" for AC Panel. Then go back.
-3. Tap **Request notification permission** (Android 13+) and allow it. **Start panel** also asks for it if it is missing. The panel works without it, but the notification holds the **Stop** button.
-4. Check the **Displays** list at the bottom of the screen. The bottom screen should appear as a second display (`#N ... [presentation]` or just a non-default id). **Panel would use** shows which one the panel will take.
-5. Tap **Start panel** *before* launching the game. Alternatively, launch AC Panel from the bottom screen.
-6. Start dolphin-lnk on the top screen and boot Animal Crossing. The panel shows *Waiting for Dolphin…* until the EmuLink server answers, then *Not in town* on the title screen and menus, then the live data once you are walking around.
-7. To stop, use **Stop** in the notification, **Stop panel** in the app, or long-press the panel on the bottom screen.
+AC Duo is an ordinary app with one launcher icon. It needs no special permissions (only network access, which Android grants automatically).
 
-Settings are saved: host (default `127.0.0.1`), port (`55355`), poll interval (`250` ms), **Use bottom screen** and **Floating panel shows** (Info, Map or Tracker). Turn **Use bottom screen** off to get a small translucent box on the main screen, for example on an ordinary phone. The box lets touches through to the game, so it has no tabs: it shows the page chosen under **Floating panel shows**. With **Use bottom screen** on and no second display, nothing is drawn. The notification says "Bottom screen not found" and the panel appears when the display does.
+- **AYN Thor:** open AC Duo on the bottom screen and Dolphin on the top screen.
+- **Phone:** put AC Duo in split screen next to Dolphin.
 
-On the bottom screen the panel has **Info | Map | Tracker** tabs at the top. The chosen tab is remembered.
+Until the game's data is in, the panel shows a waiting screen (*Waiting for Dolphin*, then *Waiting for your town*). Once you are walking around town, the **Info | Map | Tracker** tabs appear. The chosen tab is remembered, and all three pages are kept current while the app is visible, so switching is instant.
+
+The gear opens the settings: Dolphin's host (default `127.0.0.1`, this device), port (`55355`) and poll interval (`250` ms). Changes apply as soon as you leave the settings.
 
 ### Town map
 
@@ -55,22 +54,23 @@ The Map page follows the spec's `map` section (spec/README.md section 13):
 - The 30 acre images, decoded from RAM (GX C4 with an RGB5A3 palette), cropped to their 22x22 visible texels and placed in the game's order. Buildings (shop, post office, station, museum, tailor, police box, well, dump, dock and the four player houses) are part of those images, as in the game.
 - Villager houses as separate icons: the game's 16x16 IA4 icon from RAM, tinted per height tier with the colours from the game's display lists.
 - Column labels 1-5, row labels A-F and an outer frame, drawn by the app as plain text and shapes.
-- The player's acre outlined in magenta, and a red dot with a facing arrow at the player's exact position (original shapes, never a character sprite). Indoors, where the spec allows it, only the acre of the building's door is outlined.
+- The player's acre outlined in magenta, and the game's own player figure (read from RAM, no facing) at the player's exact position. Indoors, where the spec allows it, only the acre of the building's door is outlined.
+- A bubble naming the acre and every neighbour whose house is in it. There is no key, as in the game.
 
-Nothing else is shown. The app never reads the item/fg grid, so there are no buried items, fossils, money rocks or ground items. If an acre image fails validation, a plain green acre is drawn instead, with the spec's original fallback marker (coloured square and short label) for a building in it. A house icon that cannot be read becomes a square in its tier colour.
+Nothing else is shown on the map: no buried items, fossils, money rocks or ground items (only the Tracker reads the item grid, to count fossils). If an acre image fails validation, a plain green acre is drawn instead, with the spec's original fallback marker (coloured square and short label) for a building in it. A house icon that cannot be read becomes a square in its tier colour.
 
-The images and tables are read once per game image and town and then cached. Tables that fail validation are re-read every 5 s, and the layout is rebuilt only if what it uses actually changed. Only the player marker is re-read on every poll (three small extra batch reads), and the villager houses every 4 s. A house whose reads tear keeps its last icon and is read again 0.5 s later. Map reads happen only while a visible panel shows the Map page.
+The images and tables are read once per game image and town and then cached. Tables that fail validation are re-read every 5 s, and the layout is rebuilt only if what it uses actually changed. Only the player marker is re-read on every poll (three small extra batch reads), and the villager houses every 4 s. A house whose reads tear keeps its last icon and is read again 0.5 s later. Map and tracker reads happen only while the app is visible.
 
-### Panel window (split screen)
+### Controller focus
 
-**Open panel window (split-screen)** in the settings, or the separate launcher entry **AC Panel window**, opens the same panel (with tabs) as a normal resizeable activity in its own task. Put it next to Dolphin in split screen, for example by dragging **AC Panel window** from the taskbar.
+- The window is `FLAG_NOT_FOCUSABLE`. Taps on it still work (tabs, the gear), but a tap never moves input focus, and with it the gamepad, away from Dolphin.
+- Right after the app opens, tap the game once so Dolphin has focus. Until then the system treats AC Duo as the focused app. A focused app without a focusable window makes Android hold key events and report an ANR after 5 s, so the window drops `FLAG_NOT_FOCUSABLE` only while it is the top-resumed activity and sets it again as soon as Dolphin is.
+- While the window holds focus it shows "tap the game to give it back" and swallows every controller key and stick movement (`ControllerKeys`). Otherwise Android would turn an unhandled gamepad B or Y into BACK, which closes the app, and A into a tab press. Phone keys such as volume still work.
+- It requests no audio focus, wake lock or orientation, so it does not pause or change Dolphin.
 
-- Its window is `FLAG_NOT_FOCUSABLE`. Taps on it still work (tabs), but a tap never moves input focus, and with it the gamepad, away from Dolphin.
-- Right after the window opens, tap the game once so Dolphin has focus. Until then the system treats the panel as the focused app. A focused app without a focusable window makes Android hold key events and report an ANR after 5 s, so the window drops `FLAG_NOT_FOCUSABLE` only while it is the top-resumed activity and sets it again as soon as Dolphin is.
-- While the window holds focus it shows "tap the game to give it back" and swallows every controller key and stick movement (`ControllerKeys`). Otherwise Android would turn an unhandled gamepad B or Y into BACK, which closes the panel, and A into a tab press. Phone keys such as volume still work.
-- It requests no audio focus, wake lock or orientation, so it does not pause or change Dolphin. In split screen both apps stay resumed.
-- It shares the process's single poller with the overlay service (`PollerHub`), so running both does not poll Dolphin twice. It polls only while it is visible.
-- Changed host, port or interval apply when a panel starts (the shared poller restarts if they differ from what it uses), when **Open panel window** is pressed, and when **Start panel** is pressed. Each panel's footer shows the settings actually in use.
+### Villager names
+
+`assets/villager_names.json` holds every villager's name (236), extracted from the game's own `npc_name_str_table.bin` with `../tools/pc_client/extract_villager_names.py`. The game keeps that table in ARAM, which EmuLink cannot read, so the list ships with the app. Names the game looks up while you play (its name cache, checked against its lookup buffer) take priority and are saved per game image.
 
 ### Testing on a phone against desktop Dolphin
 
@@ -84,7 +84,7 @@ If a file named `ac_memory_map.json` exists in the app's external files dir, the
 adb push ..\spec\ac_memory_map.json /sdcard/Android/data/com.acdualscreen.companion/files/ac_memory_map.json
 ```
 
-Then tap **Start panel** again. The settings screen shows which copy was loaded and lists any parse warnings. Logs: `adb logcat -s ACPanel`.
+Then close and reopen AC Duo. The settings screen shows which copy was loaded and lists any parse warnings. Logs: `adb logcat -s ACPanel`.
 
 ## How it works
 
@@ -101,18 +101,16 @@ Then tap **Start panel** again. The settings screen shows which copy was loaded 
 | `core/DailyReader.kt` | The tracker's reads, only while a visible panel shows the Tracker: each villager's memory of the current player (`last_speak_time` == today), the buried-fossil count from the fg grid and deposit bits (re-read every 2 s), and the player's glowing spot (`shine_pos`). |
 | `VillagerNameStore.kt` | Villager names: `assets/villager_names.json` (every villager, built from the disc's `npc_name_str_table.bin` with `tools/pc_client/extract_villager_names.py`) as the fallback, plus names learned live from the game's name cache (checked against its lookup buffer), saved per game image. |
 | `Poller.kt` | Background thread. Identifies the game image from memory every 10 s (game id plus a CRC of the first code section; `core/GameIdentity.kt`). It never sends the EmuLink handshake: the server answers that by reading boot.dol from the disc image on its network thread, which is not thread-safe and crashed Dolphin when it raced the game's own disc reads during boot and backs off while Dolphin is absent. It publishes in-town data only after two polls agree, because reads can tear. While the map is wanted it adds the map to in-town states, and the marker updates on every poll. It pauses (sends nothing, keeps its caches) while no panel can be seen. |
-| `PollerHub.kt` | The process's one poller, shared by the overlay and the panel window. It runs while any panel is subscribed, pauses while none is visible, and reads the map while a visible panel shows it. It restarts when the saved connection settings differ from the ones it uses, and tells each panel which settings are in use. |
-| `CompanionService.kt` | `specialUse` foreground service. Picks the display (presentation display, then any other non-private display; the default display only when **Use bottom screen** is off), owns the overlay, follows display changes and pauses polling while the panel's display is off or missing. |
-| `PanelRoot.kt` | A panel: the Info, Map and Tracker pages. Each page draws the Info \| Map \| Tracker tabs when the panel is touchable. Moves the content a few px every 60 s against OLED burn-in. |
+| `PollerHub.kt` | The process's one poller. It runs while the app is visible and restarts when the saved connection settings differ from the ones it uses. |
+| `PanelRoot.kt` | The panel: the Info, Map and Tracker pages. Every page gets every state, so a hidden page is current when shown. Moves the content a few px every 60 s against OLED burn-in. |
 | `AcStyle.kt`, `AcPage.kt` | The game-menu look (grass, red-framed lined paper, cream bubbles, original icons) and the page base class. Pages are drawn in 1240x1080 design pixels (the Thor's bottom screen) and scaled to fit; tab taps are hit-tested in design space. Uses Fredoka from `assets/fonts/Fredoka-Medium.ttf` / `Fredoka-Bold.ttf` when present, else the system sans. |
 | `InfoView.kt` | The Info page: season, date, time, weather; player bubble with the town fruit; pocket, savings and loan (paying / all paid off / no loan); held item, birthday, today's fortune. Redraws only when those change. |
 | `TrackerView.kt` | The Tracker page: neighbours talked to today (green ring + check / red ring), fossils dug today (of 5) and the glowing spot. Never shows where anything is buried. Portraits are placeholders (initials). |
 | `TownMapView.kt` | The Map page: acre bubble (your acre and the neighbours living there), key, and the map with outlined column numbers and row letters. The acre art is one 110x132 bitmap (one pixel per texel, rebuilt only when the layout changes) plus the 16x16 house icons, scaled without filtering, with the acre highlight and player marker. |
-| `PanelActivity.kt` | The panel as a split-screen window (`FLAG_NOT_FOCUSABLE`). While it holds focus it swallows controller keys. |
+| `PanelActivity.kt` | The app: the panel in an ordinary resizeable window (`FLAG_NOT_FOCUSABLE`). While it holds focus it swallows controller keys. |
 | `ControllerKeys.kt` | Decides which key events come from a game controller (pure function, unit-tested). |
-| `MainActivity.kt` | Settings, permissions, start/stop, panel window, display diagnostics. |
+| `SettingsActivity.kt` | Settings (host, port, poll interval), opened from the gear. |
 
-The overlay is a `TYPE_APPLICATION_OVERLAY` window with `FLAG_NOT_FOCUSABLE`, so it never takes key focus and the gamepad stays with Dolphin. The panel window sets the same flag on its activity window.
 
 A normal poll makes two small batch reads: about 85 fixed addresses, each read twice in the same batch (validity rule 8), then a re-check of the GAME pointer. When new item ids show up in the pockets, a third read fetches their name entries. Before trusting the item-name tables, the decoder checks the spec's `runtime_check` pointer table. If that check fails, ids are shown in hex.
 
@@ -174,14 +172,12 @@ The shared spec is declared as an input of the test task, so editing it re-runs 
 
 ## Known limitations
 
-- **Not run on hardware yet.** No device or emulator was used. Display selection, overlay placement and focus behaviour on the Thor are untested. The Displays list in the app is there to diagnose this.
-- **Panel window focus.** Opening the panel window makes its task the focused one, so tap the game once afterwards to send the controller back to Dolphin. Until then controller presses are swallowed by the panel, and they do not reach the game. Later taps on the panel do not move focus. This is not yet tried on the foldable.
+- **Not run on a Thor yet.** Tested on a Pixel phone (split screen) and against desktop Dolphin.
+- **Controller focus.** Opening AC Duo makes it the focused app, so tap the game once afterwards to send the controller back to Dolphin. Until then controller presses are swallowed by the panel and do not reach the game.
 - **Map paths not tested live.** The extra-bridge rule, `field_type` indoors and the indoor acre are `header_derived` in the spec (Cheevo has no extra bridge). The map and its marker are verified live on desktop dolphin-lnk only.
-- **Opaque bottom screen.** The panel covers the bottom screen completely and swallows touches there. Stop it from the notification or with a long-press on the panel.
 - **Item names.** They depend on the spec's computed table addresses, guarded by the runtime pointer check. If the check fails, the panel shows hex ids and says so in the status line.
-- **Villager names.** They appear only after the game has looked them up, for example after talking to a villager. They are forgotten when the panel restarts.
 - **Torn reads.** Reads are not synchronised with the emulated CPU. The two-poll agreement and range checks hide most tearing, at the cost of 1–2 poll intervals of latency.
 - **Turnip labels.** The weekday labels assume index 0 = Sunday, as the spec says. This is not verified live.
-- **Screen and battery.** The panel no longer keeps the screen on by itself; Dolphin does that while it emulates. Polling pauses when the panel's display reports off or doze, which is untested on the Thor.
+- **Screen and battery.** The app does not keep the screen on; Dolphin does that while it emulates. Polling stops while the app is not visible.
 - **No access control on the server.** dolphin-lnk's EmuLink server binds all interfaces and accepts memory writes from any host that can reach UDP 55355. This app never writes, but use Dolphin only on networks you trust.
 - **One release only.** GAFE01 rev 0 only. Achievements and RetroAchievements are out of scope.

@@ -25,8 +25,8 @@ import com.acdualscreen.companion.core.TownMapState
  * filtering, so the pixel art stays crisp.
  */
 @SuppressLint("ViewConstructor")
-class TownMapView(context: Context, compact: Boolean, showTabs: Boolean, onTab: (PanelTab) -> Unit) :
-    AcPage(context, compact, showTabs, PanelTab.MAP, onTab) {
+class TownMapView(context: Context, onTab: (PanelTab) -> Unit, onSettings: () -> Unit) :
+    AcPage(context, PanelTab.MAP, onTab, onSettings) {
 
     private companion object {
         const val LEFT_COL = 372f

@@ -15,8 +15,8 @@ import java.util.Locale
  * when what it shows changes (not for the map marker or the tracker).
  */
 @SuppressLint("ViewConstructor")
-class InfoView(context: Context, compact: Boolean, showTabs: Boolean, onTab: (PanelTab) -> Unit) :
-    AcPage(context, compact, showTabs, PanelTab.STATUS, onTab) {
+class InfoView(context: Context, onTab: (PanelTab) -> Unit, onSettings: () -> Unit) :
+    AcPage(context, PanelTab.STATUS, onTab, onSettings) {
 
     private companion object {
         val MONTHS = arrayOf("Jan.", "Feb.", "Mar.", "Apr.", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec.")

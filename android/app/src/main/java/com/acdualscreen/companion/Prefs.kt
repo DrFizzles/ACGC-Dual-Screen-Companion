@@ -18,11 +18,8 @@ data class Prefs(
     val host: String = DEFAULT_HOST,
     val port: Int = DEFAULT_PORT,
     val intervalMs: Long = DEFAULT_INTERVAL,
-    val useBottomScreen: Boolean = true,
-    /** Content of the non-touchable floating box on the main screen (no tabs there). */
-    val floatingShows: PanelTab = PanelTab.STATUS,
 ) {
-    /** Same poller settings (host, port, interval); the display options do not affect polling. */
+    /** Same poller settings (host, port, interval). */
     fun sameConnection(o: Prefs): Boolean = host == o.host && port == o.port && intervalMs == o.intervalMs
 
     /** "host:port · interval ms", the start of every panel footer. */
@@ -33,8 +30,6 @@ data class Prefs(
             .putString("host", host)
             .putInt("port", port)
             .putLong("interval_ms", intervalMs)
-            .putBoolean("use_bottom_screen", useBottomScreen)
-            .putString("floating_shows", floatingShows.name)
             .apply()
     }
 
@@ -51,12 +46,10 @@ data class Prefs(
                 host = sp.getString("host", DEFAULT_HOST)!!.ifBlank { DEFAULT_HOST },
                 port = sp.getInt("port", DEFAULT_PORT),
                 intervalMs = sp.getLong("interval_ms", DEFAULT_INTERVAL).coerceAtLeast(MIN_INTERVAL),
-                useBottomScreen = sp.getBoolean("use_bottom_screen", true),
-                floatingShows = PanelTab.parse(sp.getString("floating_shows", null)),
             )
         }
 
-        /** Last tab chosen on a touchable panel ([key] tells the bottom screen and the window apart). */
+        /** Last tab chosen on the panel. */
         fun loadTab(ctx: Context, key: String): PanelTab =
             PanelTab.parse(ctx.getSharedPreferences(NAME, Context.MODE_PRIVATE).getString("tab_$key", null))
 

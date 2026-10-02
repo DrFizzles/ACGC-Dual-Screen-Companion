@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AC Panel</string>
-    <string name="panel_window_name">AC Split</string>
+    <string name="app_name">AC Duo</string>
+    <string name="settings_name">AC Duo settings</string>
 </resources>

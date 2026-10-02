@@ -37,7 +37,7 @@ against a live game. The app never writes to the game's memory.
 
 | Path | What it is |
 |---|---|
-| `android/` | The Android app ("AC Panel"): Kotlin, no external libraries. See [android/README.md](android/README.md). |
+| `android/` | The Android app, **AC Duo**: Kotlin, no external libraries. See [android/README.md](android/README.md). |
 | `spec/` | The memory map (`ac_memory_map.json`) and the tools that generate and check it. See [spec/README.md](spec/README.md). |
 | `tools/pc_client/` | Python 3.12 PC client: text dashboard, town-map PNG, a mock EmuLink server for testing without Dolphin, and helper tools. See [tools/pc_client/README.md](tools/pc_client/README.md). |
 
@@ -73,16 +73,14 @@ and anything from the game itself apart from the bundled villager-name list (see
    adb install -r android/app/build/outputs/apk/debug/app-debug.apk
    ```
 
-3. Open **AC Panel**. Keep the host as `127.0.0.1` and the port as `55355` when Dolphin runs on the same device.
-4. Choose how the panel appears:
-   - **AYN Thor (two screens):** grant the overlay permission, keep **Use bottom screen** on and
-     tap **Start panel**. The panel fills the bottom screen; tap its tabs to switch pages. Long-press
-     the panel to close it.
-   - **Phone (one screen):** tap **Open panel window (split-screen)** and put it beside Dolphin.
-     Alternatively, turn **Use bottom screen** off for a small floating box. It can't be touched, so it
-     shows the one page picked under **Floating panel shows**.
-5. Start Animal Crossing in dolphin-lnk and load your town. The panel says "Not in town" on the title
-   screen and fills in once you are playing.
+3. Open **AC Duo**. It's an ordinary app and needs no special permissions:
+   - **AYN Thor:** open it on the bottom screen, with Dolphin on the top screen.
+   - **Phone:** put it in split screen next to Dolphin.
+4. The gear on the panel opens the settings. Keep the host as `127.0.0.1` and the port as `55355`
+   when Dolphin runs on the same device.
+5. Start Animal Crossing in dolphin-lnk and load your town. The panel shows a waiting screen until
+   you are walking around town, then the Info, Map and Tracker tabs. After opening AC Duo, tap the
+   game once so the controller goes back to Dolphin.
 
 More detail, including running the app against Dolphin on a PC over Wi-Fi and replacing the
 memory map without rebuilding, is in [android/README.md](android/README.md).

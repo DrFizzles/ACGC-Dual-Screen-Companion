@@ -339,6 +339,29 @@ class AcPainter(private val ctx: Context) {
         c.drawRect(9f, 13f, 13f, 20f, fill)
     }
 
+    /** A gear (settings) of outer radius [r] centred on (cx, cy). */
+    fun gear(c: Canvas, cx: Float, cy: Float, r: Float, color: Int) {
+        p.reset()
+        val teeth = 8
+        for (k in 0 until teeth * 2) {
+            val a0 = Math.PI * 2 * k / (teeth * 2) - Math.PI / (teeth * 2)
+            val a1 = a0 + Math.PI * 2 / (teeth * 2)
+            val rr = if (k % 2 == 0) r else r * 0.74f
+            val x0 = cx + rr * Math.cos(a0).toFloat()
+            val y0 = cy + rr * Math.sin(a0).toFloat()
+            val x1 = cx + rr * Math.cos(a1).toFloat()
+            val y1 = cy + rr * Math.sin(a1).toFloat()
+            if (k == 0) p.moveTo(x0, y0) else p.lineTo(x0, y0)
+            p.lineTo(x1, y1)
+        }
+        p.close()
+        p.addCircle(cx, cy, r * 0.32f, Path.Direction.CCW)
+        p.fillType = Path.FillType.EVEN_ODD
+        fill.color = color
+        c.drawPath(p, fill)
+        p.fillType = Path.FillType.WINDING
+    }
+
     /** The red "you" figure. */
     fun you(c: Canvas, x: Float, y: Float, size: Float) = icon(c, x, y, size, 44f) {
         fill.color = AcStyle.RED

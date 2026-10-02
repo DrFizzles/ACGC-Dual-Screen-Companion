@@ -49,7 +49,7 @@ class PanelLogicTest {
     @Test
     fun onlyConnectionSettingsRestartThePoller() {
         val p = Prefs()
-        assertTrue(p.sameConnection(p.copy(useBottomScreen = !p.useBottomScreen, floatingShows = PanelTab.MAP)))
+        assertTrue(p.sameConnection(p.copy()))
         assertFalse(p.sameConnection(p.copy(host = "192.168.1.20")))
         assertFalse(p.sameConnection(p.copy(port = 55356)))
         assertFalse(p.sameConnection(p.copy(intervalMs = 500)))

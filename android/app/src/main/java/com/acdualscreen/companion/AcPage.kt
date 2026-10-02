@@ -14,50 +14,60 @@ import com.acdualscreen.companion.core.Phase
 
 /**
  * One page of the panel in the game-menu style ([AcStyle]): grass, the Info | Map | Tracker tabs
- * (when [showTabs]), and the red-framed paper card. Subclasses draw the card's content in design
- * pixels; the whole page is scaled uniformly to fit the view and centred.
+ * with a settings button, and the red-framed paper card. Subclasses draw the card's content in
+ * design pixels; the whole page is scaled uniformly to fit the view and centred.
  *
- * A tap on a tab calls [onTab]; a long press anywhere else is the view's long-click (close panel).
+ * Until the game's data is in, the page shows the waiting screen instead: no tabs (there is
+ * nothing to switch between), the card filling the screen, and the settings button in its corner.
+ *
+ * A tap on a tab calls [onTab], a tap on the gear [onSettings]; a long press anywhere else is the
+ * view's long-click.
  */
 @SuppressLint("ViewConstructor")
 abstract class AcPage(
     context: Context,
-    protected val compact: Boolean,
-    private val showTabs: Boolean,
     private val page: PanelTab,
     private val onTab: (PanelTab) -> Unit,
+    private val onSettings: () -> Unit,
 ) : View(context) {
 
     private companion object {
         const val DOT_MS = 450L
         const val BADGE_BG = 0xFF9BDCF7.toInt()
         const val BADGE_RING = 0xFF2F7CC0.toInt()
+        const val GEAR = 96f
+    }
+
+    private sealed interface Hit {
+        data class Tab(val tab: PanelTab) : Hit
+        data object Settings : Hit
     }
 
     protected val ac = AcPainter(context)
     @JvmField protected var state: GameState = GameState.of(Phase.CONNECTING, "Starting…")
-    @JvmField protected var footer: String = ""
 
-    private val designH = if (showTabs) AcStyle.H_TABS else AcStyle.H_NO_TABS
     /** Real pixels per design pixel (set on every draw). */
     protected var pageScale = 1f
         private set
     private var offX = 0f
     private var offY = 0f
     private val tabRects = LinkedHashMap<PanelTab, RectF>()
-    private var downTab: PanelTab? = null
+    /** The gear: right of the tabs in town, in the card's top-right corner while waiting. */
+    private val gearInTown = RectF(AcStyle.W - 24f - GEAR, 24f, AcStyle.W - 24f, 120f)
+    private val gearWaiting = RectF(AcStyle.W - 62f - GEAR, 62f, AcStyle.W - 62f, 62f + GEAR)
+    private var down: Hit? = null
     private var downAt = 0L
+
+    private val waiting: Boolean get() = state.phase != Phase.IN_TOWN
 
     init {
         isClickable = true
         isLongClickable = true
-        if (showTabs) {
-            val labels = listOf(PanelTab.STATUS, PanelTab.MAP, PanelTab.TRACKER)
-            val tabW = (AcStyle.W - 48f - 2 * 20f) / 3
-            labels.forEachIndexed { i, t ->
-                val l = 24f + i * (tabW + 20f)
-                tabRects[t] = RectF(l, 24f, l + tabW, 120f)
-            }
+        val labels = listOf(PanelTab.STATUS, PanelTab.MAP, PanelTab.TRACKER)
+        val tabW = (AcStyle.W - 48f - GEAR - 3 * 20f) / 3
+        labels.forEachIndexed { i, t ->
+            val l = 24f + i * (tabW + 20f)
+            tabRects[t] = RectF(l, 24f, l + tabW, 120f)
         }
     }
 
@@ -75,31 +85,31 @@ abstract class AcPage(
         }
     }
 
-    fun setFooter(text: String) {
-        if (text == footer) return
-        footer = text
-        invalidate()
-    }
-
     /** A short spoken summary of the page (TalkBack). */
     protected open fun describeInTown(s: GameState): String = s.status
 
     override fun onDraw(canvas: Canvas) {
         if (width == 0 || height == 0) return
-        pageScale = minOf(width / AcStyle.W, height / designH)
+        pageScale = minOf(width / AcStyle.W, height / AcStyle.H_TABS)
         offX = (width - AcStyle.W * pageScale) / 2
-        offY = (height - designH * pageScale) / 2
-        if (!compact) ac.grass(canvas, width.toFloat(), height.toFloat())
+        offY = (height - AcStyle.H_TABS * pageScale) / 2
+        ac.grass(canvas, width.toFloat(), height.toFloat())
         canvas.save()
         canvas.translate(offX, offY)
         canvas.scale(pageScale, pageScale)
-        if (showTabs) drawTabs(canvas)
-        val top = if (showTabs) 140f else 24f
-        val bottom = designH - 24f
+        val top = if (waiting) 24f else 140f
+        val bottom = AcStyle.H_TABS - 24f
+        if (!waiting) drawTabs(canvas)
         ac.shadowBox(canvas, 24f, top, AcStyle.W - 24f, bottom - 10f, 72f, AcStyle.RED, AcStyle.RED, 0f, AcStyle.RED_DARK, 10f)
         ac.paper(canvas, 38f, top + 14f, AcStyle.W - 38f, bottom - 24f, 58f)
         val content = RectF(24f + 14f + 44f, top + 14f + 32f, AcStyle.W - 24f - 14f - 44f, bottom - 10f - 14f - 32f)
-        if (state.phase == Phase.IN_TOWN) drawContent(canvas, content) else drawMessage(canvas, content)
+        if (waiting) {
+            drawMessage(canvas, content)
+            drawGear(canvas, gearWaiting)
+        } else {
+            drawGear(canvas, gearInTown)
+            drawContent(canvas, content)
+        }
         canvas.restore()
     }
 
@@ -116,6 +126,11 @@ abstract class AcPage(
         }
     }
 
+    private fun drawGear(c: Canvas, r: RectF) {
+        ac.shadowBox(c, r.left, r.top, r.right, r.bottom, GEAR / 2, AcStyle.GREEN_PALE, AcStyle.GREEN_DARK, 8f, AcStyle.GREEN_DARKER, 8f)
+        ac.gear(c, r.centerX(), r.centerY(), 26f, AcStyle.GREEN_DARK)
+    }
+
     private fun tabLabel(t: PanelTab) = when (t) {
         PanelTab.STATUS -> "Info"
         PanelTab.MAP -> "Map"
@@ -123,15 +138,16 @@ abstract class AcPage(
     }
 
     /**
-     * The waiting screen, shown on every page until the game's data is in: the leaf badge over a
-     * speech bubble with a short title and one friendly line, and three dots that pulse while it
-     * waits. Deliberately no connection details or scene names.
+     * The waiting screen: the leaf badge over a speech bubble with a short title and one friendly
+     * line, and three dots that pulse while it waits. Deliberately no connection details.
      */
     private fun drawMessage(c: Canvas, r: RectF) {
         val w = waitingCopy(state.phase)
         val cx = r.centerX()
-        val bubbleTop = r.top + 236f
-        val bubbleBottom = bubbleTop + (if (w.waiting) 360f else 300f)
+        val bubbleH = if (w.waiting) 360f else 300f
+        // Centre the badge + bubble group (the badge rises 138 above the bubble).
+        val bubbleTop = r.centerY() - (bubbleH + 138f) / 2 + 138f
+        val bubbleBottom = bubbleTop + bubbleH
         ac.shadowBox(c, cx - 430f, bubbleTop, cx + 430f, bubbleBottom, 72f, AcStyle.CREAM, AcStyle.ORANGE, 8f, 0x33A3150F, 8f)
 
         // Leaf badge, overlapping the bubble's top edge.
@@ -163,33 +179,38 @@ abstract class AcPage(
         Phase.NOT_IN_TOWN, Phase.IN_TOWN ->
             Waiting("Waiting for your town", "Load your save to see what's happening in town", true, false)
         Phase.WRONG_GAME ->
-            Waiting("Game not supported", "AC Panel works with Animal Crossing (USA)", false, true)
+            Waiting("Game not supported", "AC Duo works with Animal Crossing (USA)", false, true)
         Phase.SPEC_MISSING ->
-            Waiting("Something's missing", "Reinstall AC Panel to restore its game data", false, true)
+            Waiting("Something's missing", "Reinstall AC Duo to restore its game data", false, true)
     }
 
     private fun describe(s: GameState): String = waitingCopy(s.phase).let { "${it.title}. ${it.line}" }
 
+    private fun hitAt(x: Float, y: Float): Hit? = when {
+        waiting -> if (gearWaiting.contains(x, y)) Hit.Settings else null
+        gearInTown.contains(x, y) -> Hit.Settings
+        else -> tabRects.entries.firstOrNull { it.value.contains(x, y) }?.key?.let { Hit.Tab(it) }
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(e: MotionEvent): Boolean {
-        if (showTabs) {
-            val x = (e.x - offX) / pageScale
-            val y = (e.y - offY) / pageScale
-            val hit = tabRects.entries.firstOrNull { it.value.contains(x, y) }?.key
-            when (e.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downTab = hit
-                    downAt = e.eventTime
-                }
-                MotionEvent.ACTION_UP -> {
-                    val t = downTab
-                    downTab = null
-                    if (t != null && t == hit && e.eventTime - downAt < ViewConfiguration.getLongPressTimeout()) {
-                        if (t != page) onTab(t)
+        val hit = hitAt((e.x - offX) / pageScale, (e.y - offY) / pageScale)
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                down = hit
+                downAt = e.eventTime
+            }
+            MotionEvent.ACTION_UP -> {
+                val d = down
+                down = null
+                if (d != null && d == hit && e.eventTime - downAt < ViewConfiguration.getLongPressTimeout()) {
+                    when (d) {
+                        is Hit.Tab -> if (d.tab != page) onTab(d.tab)
+                        Hit.Settings -> onSettings()
                     }
                 }
-                MotionEvent.ACTION_CANCEL -> downTab = null
             }
+            MotionEvent.ACTION_CANCEL -> down = null
         }
         return super.onTouchEvent(e)
     }

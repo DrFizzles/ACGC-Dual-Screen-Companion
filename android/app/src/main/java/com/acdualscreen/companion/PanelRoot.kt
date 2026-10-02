@@ -9,34 +9,33 @@ import android.widget.TextView
 import com.acdualscreen.companion.core.GameState
 
 /**
- * A panel: the Info ([InfoView]), Map ([TownMapView]) and Tracker ([TrackerView]) pages. When the
- * panel can be touched ([showTabs]) each page draws the "Info | Map | Tracker" tabs and a tap
- * switches page. The floating box on the main screen cannot be touched, so it shows one page,
- * chosen in the settings.
+ * The panel: the Info ([InfoView]), Map ([TownMapView]) and Tracker ([TrackerView]) pages. Each
+ * page draws the "Info | Map | Tracker" tabs and the settings gear; a tap on a tab switches page.
+ * Every page receives every state, so a hidden page is already current when it is shown.
  *
  * Every minute the content moves a few pixels (OLED burn-in protection).
  */
 @SuppressLint("ViewConstructor")
 class PanelRoot(
     context: Context,
-    compact: Boolean,
-    private val showTabs: Boolean,
     initial: PanelTab,
     private val onTabChanged: (PanelTab) -> Unit,
+    onSettings: () -> Unit,
 ) : LinearLayout(context) {
 
     private companion object {
         const val BG = 0xFF47A646.toInt()
-        const val HINT_BG = 0xFF3A2E00.toInt()
-        const val HINT_TEXT = 0xFFFFD54F.toInt()
+        const val HINT_BG = 0xFF5B3714.toInt()
+        const val HINT_TEXT = 0xFFFFF27A.toInt()
         const val SHIFT_PERIOD_MS = 60_000L
         val SHIFTS = arrayOf(0 to 0, 1 to 0, 1 to 1, 0 to 1, -1 to 1, -1 to 0, -1 to -1, 0 to -1, 1 to -1)
     }
 
     private val density = resources.displayMetrics.density
-    val status = InfoView(context, compact, showTabs) { select(it) }
-    val map = TownMapView(context, compact, showTabs) { select(it) }
-    val tracker = TrackerView(context, compact, showTabs) { select(it) }
+    private val onTabTap: (PanelTab) -> Unit = { select(it) }
+    val status = InfoView(context, onTabTap, onSettings)
+    val map = TownMapView(context, onTabTap, onSettings)
+    val tracker = TrackerView(context, onTabTap, onSettings)
     private val pages = mapOf(PanelTab.STATUS to status, PanelTab.MAP to map, PanelTab.TRACKER to tracker)
     private val content = FrameLayout(context)
     private val hint = TextView(context)
@@ -58,8 +57,8 @@ class PanelRoot(
 
     init {
         orientation = VERTICAL
-        // Opaque panels: the strip uncovered by the burn-in shift stays grass-coloured.
-        if (!compact) setBackgroundColor(BG)
+        // Opaque: the strip uncovered by the burn-in shift stays grass-coloured.
+        setBackgroundColor(BG)
         hint.apply {
             textSize = 14f
             gravity = Gravity.CENTER
@@ -77,12 +76,6 @@ class PanelRoot(
         show(initial)
     }
 
-    /**
-     * Whether this panel needs [t]'s data: every page when it has tabs (so switching tabs shows
-     * current data at once; hidden pages keep their state), only its one page otherwise.
-     */
-    fun wants(t: PanelTab): Boolean = showTabs || tab == t
-
     /** Switches page (from a tab tap) and reports it. */
     fun select(t: PanelTab) {
         if (t == tab) return
@@ -99,20 +92,10 @@ class PanelRoot(
         for (p in pages.values) p.setState(s)
     }
 
-    fun setFooter(text: String) {
-        for (p in pages.values) p.setFooter(text)
-    }
-
     /** A one-line notice above the page (null hides it). */
     fun setHint(text: String?) {
         hint.text = text ?: ""
         hint.visibility = if (text.isNullOrEmpty()) GONE else VISIBLE
-    }
-
-    /** Long-press on the page content. */
-    fun setOnContentLongClick(listener: () -> Unit) {
-        val l = OnLongClickListener { listener(); true }
-        for (p in pages.values) p.setOnLongClickListener(l)
     }
 
     override fun onAttachedToWindow() {

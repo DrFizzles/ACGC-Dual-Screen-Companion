@@ -1,6 +1,7 @@
 package com.acdualscreen.companion
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -8,11 +9,11 @@ import android.view.WindowInsets
 import android.view.WindowManager
 
 /**
- * The panel in an ordinary, resizeable activity window, for split screen next to Dolphin (the
- * foldable has no second display). Its window is FLAG_NOT_FOCUSABLE: taps still reach the panel
- * (tabs work) but a tap never moves input focus, and with it the gamepad, away from Dolphin. It
- * shares the process-wide poller with the overlay service ([PollerHub]), so running both does not
- * poll Dolphin twice, and it polls only while visible (onStart..onStop).
+ * AC Duo: the panel as an ordinary, resizeable app window. On the AYN Thor it is opened on the
+ * bottom screen; on a phone it goes in split screen next to Dolphin. Its window is
+ * FLAG_NOT_FOCUSABLE: taps still reach the panel (tabs work) but a tap never moves input focus,
+ * and with it the gamepad, away from Dolphin. It polls only while visible (onStart..onStop),
+ * through the process-wide poller ([PollerHub]). The gear opens [SettingsActivity].
  *
  * One exception: while this activity is the top-resumed one (right after it was launched, before
  * the user taps the game) the system treats it as the focused app. A focused app without a
@@ -39,10 +40,12 @@ class PanelActivity : Activity() {
         // Taps must not take input focus: the controller and keyboard stay with the game
         // (see the class comment for the one exception, onTopResumedActivityChanged).
         window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-        root = PanelRoot(this, compact = false, showTabs = true, initial = Prefs.loadTab(this, TAB_KEY)) { tab ->
-            Prefs.saveTab(this, TAB_KEY, tab)
-            sub?.let { PollerHub.update(it, wantsMap = root.wants(PanelTab.MAP), wantsDaily = root.wants(PanelTab.TRACKER)) }
-        }
+        root = PanelRoot(
+            this,
+            initial = Prefs.loadTab(this, TAB_KEY),
+            onTabChanged = { tab -> Prefs.saveTab(this, TAB_KEY, tab) },
+            onSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
+        )
         root.setOnApplyWindowInsetsListener { v, insets ->
             val b = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
             v.setPadding(b.left, b.top, b.right, b.bottom)
@@ -53,13 +56,8 @@ class PanelActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
-        // The footer follows the settings the shared poller actually uses (it restarts when they
-        // changed, here or later from the settings screen).
-        sub = PollerHub.subscribe(
-            this, active = true, wantsMap = root.wants(PanelTab.MAP), wantsDaily = root.wants(PanelTab.TRACKER),
-            onPrefs = { p -> root.setFooter("${p.connectionLabel()} · panel window") },
-            onState = { root.setState(it) },
-        )
+        // Every page is kept current (map and tracker included), so switching tabs is instant.
+        sub = PollerHub.subscribe(this, active = true, wantsMap = true, wantsDaily = true, onState = { root.setState(it) })
     }
 
     override fun onStop() {
