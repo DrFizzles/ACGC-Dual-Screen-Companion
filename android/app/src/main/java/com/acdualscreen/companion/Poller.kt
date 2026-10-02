@@ -3,6 +3,7 @@ package com.acdualscreen.companion
 import com.acdualscreen.companion.core.DailyReader
 import com.acdualscreen.companion.core.DailyState
 import com.acdualscreen.companion.core.Decoder
+import com.acdualscreen.companion.core.GameIdentity
 import com.acdualscreen.companion.core.GameState
 import com.acdualscreen.companion.core.MemoryMap
 import com.acdualscreen.companion.core.MemoryReader
@@ -14,7 +15,7 @@ import java.io.IOException
 import java.util.concurrent.locks.LockSupport
 
 /**
- * Background polling loop: handshake, decode, publish. Runs on its own thread; [onState] is
+ * Background polling loop: identify the game, decode, publish. Runs on its own thread; [onState] is
  * called from that thread, only when the published state actually changes. Nothing new is
  * published once [stop] has been called (a call already in progress may still finish).
  * While [setPaused] is true the loop sends nothing but keeps its decoder and name caches.
@@ -124,14 +125,18 @@ class Poller(
             try {
                 val c = client ?: newClient() ?: break
                 val now = System.nanoTime()
-                // Re-handshake every 10 s so a different game image (new boot.dol hash) is noticed.
+                // Identify the game image from memory (never the EmuLink handshake: see GameIdentity),
+                // again every 10 s so a different image is noticed.
                 if (!helloOk || now - helloAt > 10_000_000_000L) {
-                    val hello = c.handshake()
-                    decoder.onHello(hello.gameId, hello.gameHash)
-                    decoder.gameKey?.let { k -> if (k != namesKey) { namesKey = k; names?.load(k)?.let(decoder::preloadNames); savedNames = decoder.learnedNames().size } }
-                    townMap?.onHello(hello.gameId, hello.gameHash)
-                    daily.reset()
-                    helloOk = true
+                    val id = GameIdentity.read(c, map)
+                    if (id != null) {
+                        val before = decoder.gameKey
+                        decoder.onHello(id.gameId, id.fingerprint)
+                        townMap?.onHello(id.gameId, id.fingerprint)
+                        if (decoder.gameKey != before) daily.reset()
+                        decoder.gameKey?.let { k -> if (k != namesKey) { namesKey = k; names?.load(k)?.let(decoder::preloadNames); savedNames = decoder.learnedNames().size } }
+                        helloOk = true
+                    }
                     helloAt = now
                 }
                 val s = decoder.poll(c)

@@ -152,11 +152,14 @@ class DecodeTest(unittest.TestCase):
         self.assertNotIn(self.exp["unknown_id"], cached)
         self.assertEqual(reader.poll()["round_trips"], 1)       # names come from the cache
 
-        # A different game hash must clear the cache and re-read the tables.
-        src.game_hash = "hash-B"
+        # A different game image (other code at the identity address) must clear the cache and
+        # re-read the tables.
+        other = bytearray(self.image)
+        other[acmap.IDENTITY_CODE_ADDR - 0x80000000] ^= 0xFF
+        reader.source = MemoryImageSource(other)
         reader.handshake_interval = 0
         state = reader.poll()
-        self.assertEqual(state["round_trips"], 3)               # handshake + batch + names
+        self.assertEqual(state["round_trips"], 3)               # identity + batch + names
         self.check_state(state)
 
     def test_steady_state_is_one_udp_request(self):

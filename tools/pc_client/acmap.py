@@ -23,6 +23,7 @@ import json
 import re
 import struct
 import time
+import zlib
 from dataclasses import dataclass, field as dc_field
 from pathlib import Path
 from typing import Any
@@ -486,6 +487,10 @@ NAME_PUNCT = " '.-&!"
 NPC_NAME_TYPE_VILLAGER = 1    # mNpc_NAME_TYPE_NPC
 
 
+IDENTITY_CODE_ADDR = 0x80003100   # first text section of a GameCube DOL (static once booted)
+IDENTITY_CODE_LEN = 0x1000
+
+
 def _blank(data: bytes) -> bool:
     """All 0x00 or all 0xFF: cleared or unmapped memory, not a real string."""
     return not data or data.count(0) == len(data) or data.count(0xFF) == len(data)
@@ -535,9 +540,20 @@ class ACReader:
         return read_stable(lambda spans: self._call(self.source.batch_read, spans), reads)
 
     def _maybe_handshake(self) -> dict:
+        """Identify the game image from memory: the game id plus a CRC32 of the first text section.
+
+        This replaces the EmuLink "EMLKV2" handshake. Its first use makes dolphin-lnk hash boot.dol
+        by reading the disc image from the server thread, which is not thread-safe (DiscIO
+        Blob::Read) and crashed Dolphin when it raced the game's own disc reads during boot."""
         now = time.monotonic()
         if self._handshake is None or now - self._handshake_time >= self.handshake_interval:
-            self._handshake = self._call(self.source.handshake)
+            spec = self.spec
+            data = self._call(self.source.batch_read, [(spec.id_addr, len(spec.game_id)),
+                                                       (IDENTITY_CODE_ADDR, IDENTITY_CODE_LEN)])
+            raw_id, code = (data + [b"", b""])[:2]
+            game_id = "".join(chr(b) if 0x20 <= b <= 0x7E else "?" for b in (raw_id or b""))
+            self._handshake = {"emulator": "memory", "game_id": game_id,
+                               "game_hash": "%08x" % zlib.crc32(code or b""), "platform": "GCN"}
             self._handshake_time = now
         return self._handshake
 
