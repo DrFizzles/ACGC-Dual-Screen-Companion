@@ -114,6 +114,8 @@ data class PlayerMarker(
 data class TownMapState(
     val layout: TownLayout?,
     val houseArt: List<HouseArt> = emptyList(),
+    /** The game's player figure (tinted), or null: draw the original dot instead. */
+    val playerArt: HouseArt? = null,
     val houses: List<HouseIcon> = emptyList(),
     val player: PlayerMarker? = null,
     /** Acre to outline when indoors (spec player.indoor_acre), as (blockX, blockZ). */
@@ -207,6 +209,7 @@ class TownMapReader(private val map: MemoryMap, private val spec: MapSpec) {
         val dataCombi: ByteArray?,
         val housePos: ByteArray?,
         val houseArt: List<HouseArt>,
+        val playerArt: HouseArt?,
         val complete: Boolean,
         val notes: List<String>,
     ) {
@@ -350,6 +353,7 @@ class TownMapReader(private val map: MemoryMap, private val spec: MapSpec) {
         return TownMapState(
             layout = lay,
             houseArt = st.houseArt,
+            playerArt = st.playerArt,
             houses = if (lay != null) houses else emptyList(),
             player = player,
             indoorAcre = indoor,
@@ -394,6 +398,9 @@ class TownMapReader(private val map: MemoryMap, private val spec: MapSpec) {
         val iIcon = add(vh.iconAddr, vh.iconSize)
         val iTiers = vh.tiers.map { add(it.displayListAddr, maxOf(it.primOffset, it.envOffset) + it.colorLen) }
         val iPos = add(vh.posListAddr, vh.posEntryLen * vh.posCount)
+        val pi = pl.icon
+        val iPlayerIcon = if (pi != null) add(pi.addr, pi.size) else -1
+        val iPlayerDl = if (pi != null) add(pi.displayListAddr, maxOf(pi.primOffset, pi.envOffset) + pi.colorLen) else -1
         val iRegion = add(tx.rangeStart, (tx.rangeEnd - tx.rangeStart).toInt())
         val r = reader.read(reqs)
 
@@ -442,6 +449,28 @@ class TownMapReader(private val map: MemoryMap, private val spec: MapSpec) {
             HouseArt(t.tier, icon?.let { tint(it, prim, env) }, vh.iconW, vh.iconH, vh.iconUnits, prim)
         }.let { a -> prev?.houseArt?.takeIf { sameArt(it, a) } ?: a }
 
+        val playerArt = if (pi == null) null else {
+            val px = r[iPlayerIcon]?.let { b -> runCatching { GcTexture.decode(b, pi.w, pi.h, pi.format) }.getOrNull() }
+                ?.takeIf { p -> p.any { (it ushr 24) != 0 } }
+            val dl = r[iPlayerDl]
+            fun rgbAt(off: Int): Int? = dl?.let {
+                GcTexture.argb(255, it[off].toInt() and 0xFF, it[off + 1].toInt() and 0xFF, it[off + 2].toInt() and 0xFF)
+            }
+            var prim = rgbAt(pi.primOffset)
+            var env = rgbAt(pi.envOffset)
+            if (prim != pi.expectedPrim || env != pi.expectedEnv) {
+                prim = pi.expectedPrim
+                env = pi.expectedEnv
+            }
+            if (px == null) {
+                notes += "player icon not readable"
+                null
+            } else {
+                HouseArt(-1, tint(px, prim, env), pi.w, pi.h, pi.units, prim)
+                    .let { a -> prev?.playerArt?.takeIf { sameArt(listOf(it), listOf(a)) } ?: a }
+            }
+        }
+
         val complete = palOk && texPtrs != null && region != null && palSel != null && r[iPluss] != null &&
             dataCombi != null && pos != null && icon != null && palettes.all { it != null }
         return Statics(
@@ -453,6 +482,7 @@ class TownMapReader(private val map: MemoryMap, private val spec: MapSpec) {
             dataCombi = dataCombi,
             housePos = pos,
             houseArt = art,
+            playerArt = playerArt,
             complete = complete,
             notes = notes,
         )

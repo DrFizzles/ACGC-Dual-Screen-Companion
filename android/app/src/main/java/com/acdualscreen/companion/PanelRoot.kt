@@ -20,7 +20,7 @@ import com.acdualscreen.companion.core.GameState
 class PanelRoot(
     context: Context,
     compact: Boolean,
-    showTabs: Boolean,
+    private val showTabs: Boolean,
     initial: PanelTab,
     private val onTabChanged: (PanelTab) -> Unit,
 ) : LinearLayout(context) {
@@ -76,6 +76,12 @@ class PanelRoot(
         addView(content, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         show(initial)
     }
+
+    /**
+     * Whether this panel needs [t]'s data: every page when it has tabs (so switching tabs shows
+     * current data at once; hidden pages keep their state), only its one page otherwise.
+     */
+    fun wants(t: PanelTab): Boolean = showTabs || tab == t
 
     /** Switches page (from a tab tap) and reports it. */
     fun select(t: PanelTab) {

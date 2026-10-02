@@ -559,6 +559,14 @@ def add_synthetic_map(image: bytearray, spec: acmap.Spec, homes=SYN_HOMES, playe
         _put(image, dl + eo, bytes(env) + b"\xff")
         tiers[t["tier"]] = (prim, env)
 
+    # ---- the player's map figure: the made-up icon pattern in the spec's expected colours
+    pi = m["player"].get("icon")
+    if pi:
+        _put(image, P(pi["addr"]), bytes(icon))
+        dl = P(pi["display_list_addr"])
+        _put(image, dl + P(pi["prim_offset"]), bytes(pi["expected_prim"]) + bytes([0xFF]))
+        _put(image, dl + P(pi["env_offset"]), bytes(pi["expected_env"]) + bytes([0xFF]))
+
     sr = vh_["slot_rule"]
     hl = sr["house_pos_list"]
     hl_addr, hlen = P(hl["addr"]), hl["entry_len"]

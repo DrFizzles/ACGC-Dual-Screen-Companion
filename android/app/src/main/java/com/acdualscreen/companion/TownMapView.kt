@@ -5,8 +5,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.Rect
 import android.graphics.RectF
 import com.acdualscreen.companion.core.GameState
 import com.acdualscreen.companion.core.HouseArt
@@ -38,17 +36,10 @@ class TownMapView(context: Context, compact: Boolean, showTabs: Boolean, onTab: 
         const val FRAME = 10f
         /** Below this many pixels per map unit the art is shrunk, so filter it instead. */
         const val FILTER_BELOW_U = 2f
-        val BUILDING_LABELS = mapOf(
-            "player_houses" to "Houses", "shop" to "Nook's", "police" to "Police", "post_office" to "Post office",
-            "station" to "Station", "dump" to "Dump", "museum" to "Museum", "tailor" to "Tailor",
-            "wishing_well" to "Well", "dock" to "Dock",
-        )
     }
 
     private val bitmapPaint = Paint()
-    private val path = Path()
     private val rect = RectF()
-    private val src = Rect()
 
     private var acres: Bitmap? = null
     private var acresLayout: TownLayout? = null
@@ -85,6 +76,9 @@ class TownMapView(context: Context, compact: Boolean, showTabs: Boolean, onTab: 
         icons.forEach { it?.recycle() }
         icons = emptyList()
         iconsArt = null
+        playerBmp?.recycle()
+        playerBmp = null
+        playerBmpArt = null
     }
 
     /** The acre art at one pixel per texel; reuses the bitmap when the size is unchanged. */
@@ -142,14 +136,20 @@ class TownMapView(context: Context, compact: Boolean, showTabs: Boolean, onTab: 
         ac.line(c, "TOWN MAP", x, r.top + 92f, w)
         ac.text.letterSpacing = 0f
 
-        // The acre bubble: where the player is, and who lives there.
+        // The acre bubble: where the player is, and every neighbour who lives there. It grows with
+        // the names (the map has no key, as in the game).
+        val acre = m?.player?.let { it.blockX to it.blockZ } ?: m?.indoorAcre
+        val here = if (acre == null || m == null) emptyList() else m.houses
+            .filter { it.blockX == acre.first && it.blockZ == acre.second }
+            .mapNotNull { h -> state.villagers.firstOrNull { it.slot == h.slot }?.name?.let { n -> n to h.tier } }
         val bTop = r.top + 140f
-        val bBottom = r.top + 470f
+        val namesTop = bTop + 262f
+        val rowH = if (here.isEmpty()) 0f else minOf(58f, (r.bottom - 40f - namesTop) / here.size)
+        val bBottom = maxOf(bTop + 300f, namesTop + here.size * rowH + 18f)
         ac.roundBox(c, x, bTop, x + w, bBottom, 64f, AcStyle.CREAM, AcStyle.ORANGE, 8f)
         val cx = x + w / 2
         ac.font(42f, true, AcStyle.BROWN, Paint.Align.CENTER)
         ac.line(c, "Acre", cx, bTop + 62f)
-        val acre = m?.player?.let { it.blockX to it.blockZ } ?: m?.indoorAcre
         val rowL = acre?.let { layout?.rowLabels?.getOrNull(it.second - layout.firstBlockZ) }
         val colL = acre?.let { layout?.colLabels?.getOrNull(it.first - layout.firstBlockX) }
         val ly = bTop + 170f
@@ -162,90 +162,52 @@ class TownMapView(context: Context, compact: Boolean, showTabs: Boolean, onTab: 
             ac.font(64f, true, AcStyle.BROWN_SOFT, Paint.Align.CENTER)
             ac.line(c, "?", cx, ly)
         }
-        // Neighbours whose house is in this acre (up to two).
-        val names = if (acre == null || m == null) emptyList() else m.houses
-            .filter { it.blockX == acre.first && it.blockZ == acre.second }
-            .mapNotNull { h -> state.villagers.firstOrNull { it.slot == h.slot }?.name }
-            .take(2)
-        names.forEachIndexed { i, n ->
-            val y = bTop + 262f + i * 54f
-            ac.font(40f, true, AcStyle.VILLAGER_NAME)
+        val tierIcons = m?.houseArt?.let { iconsFor(it) }.orEmpty()
+        val iconSize = minOf(44f, rowH - 6f)
+        here.forEachIndexed { i, (n, tier) ->
+            val y = namesTop + i * rowH + rowH / 2
+            ac.font(minOf(40f, rowH * 0.7f), true, AcStyle.VILLAGER_NAME)
             val tw = minOf(ac.text.measureText(n), w - 120f)
-            val left = cx - (44f + 12f + tw) / 2
-            ac.homeIcon(c, left, y - 22f, 44f, villagerHouseColor())
-            ac.line(c, n, left + 56f, y, w - 120f)
-        }
-
-        drawKey(c, x, bBottom + 24f, w, r.bottom, m, layout)
-    }
-
-    /**
-     * The key, in two columns: the player marker and a villager house as the map draws them, then
-     * every building in this town shown as its own acre tile from the game's map art.
-     */
-    private fun drawKey(c: Canvas, x: Float, top: Float, w: Float, bottom: Float, m: TownMapState?, layout: TownLayout?) {
-        val entries = ArrayList<Pair<String, (Float, Float, Float) -> Unit>>()
-        entries += "You" to { ix, iy, size -> drawMarker(c, ix + size / 2, iy + size / 2, size * 0.22f, 0f, 1f, m) }
-        val houseIcon = m?.houseArt?.let { iconsFor(it) }?.firstOrNull()
-        entries += "Villagers" to { ix, iy, size ->
-            if (houseIcon != null) {
+            val left = cx - (iconSize + 12f + tw) / 2
+            val icon = tierIcons.getOrNull(tier) ?: tierIcons.firstOrNull()
+            if (icon != null) {
                 bitmapPaint.isFilterBitmap = false
-                rect.set(ix, iy, ix + size, iy + size)
-                c.drawBitmap(houseIcon, null, rect, bitmapPaint)
+                rect.set(left, y - iconSize / 2, left + iconSize, y + iconSize / 2)
+                c.drawBitmap(icon, null, rect, bitmapPaint)
             } else {
-                ac.homeIcon(c, ix, iy, size, villagerHouseColor())
+                ac.homeIcon(c, left, y - iconSize / 2, iconSize, villagerHouseColor())
             }
-        }
-        if (layout != null) {
-            val art = acresFor(layout)
-            for (b in layout.buildings.distinctBy { it.key }) {
-                val label = BUILDING_LABELS[b.key] ?: b.label
-                entries += label to { ix, iy, size ->
-                    val ar = layout.acreRect(b.blockX, b.blockZ)
-                    if (b.inTexture) {
-                        // One pixel per map unit in the acre bitmap.
-                        src.set(ar[0].toInt(), ar[1].toInt(), ar[2].toInt(), ar[3].toInt())
-                        rect.set(ix, iy, ix + size, iy + size)
-                        bitmapPaint.isFilterBitmap = false
-                        c.drawBitmap(art, src, rect, bitmapPaint)
-                    } else {
-                        ac.fill.color = b.color
-                        c.drawRect(ix + size * 0.2f, iy + size * 0.2f, ix + size * 0.8f, iy + size * 0.8f, ac.fill)
-                    }
-                }
-            }
-        }
-        val rows = (entries.size + 1) / 2
-        val rowH = minOf(56f, (bottom - top - 32f) / rows)
-        val size = rowH - 10f
-        ac.roundBox(c, x, top, x + w, top + rows * rowH + 32f, 36f, AcStyle.CREAM, AcStyle.ORANGE, 6f)
-        val colW = (w - 40f) / 2
-        entries.forEachIndexed { i, (label, draw) ->
-            val ex = x + 20f + (i % 2) * colW
-            val ey = top + 16f + (i / 2) * rowH
-            draw(ex, ey + (rowH - size) / 2, size)
-            ac.font(minOf(28f, rowH * 0.5f), false, AcStyle.BROWN)
-            ac.line(c, label, ex + size + 10f, ey + rowH / 2, colW - size - 14f)
+            ac.line(c, n, left + iconSize + 12f, y, w - 120f)
         }
     }
 
-    /** The player dot with its facing arrow, as on the map. */
-    private fun drawMarker(c: Canvas, cx: Float, cy: Float, radius: Float, dirX: Float, dirY: Float, m: TownMapState?) {
-        val color = m?.markerColor ?: 0xFFFF2D2D.toInt()
-        val outline = m?.markerOutline ?: -1
-        val a = TownMapGeometry.arrow(cx, cy, dirX, dirY, radius)
-        path.reset()
-        path.moveTo(a[0], a[1])
-        path.lineTo(a[2], a[3])
-        path.lineTo(a[4], a[5])
-        path.close()
-        ac.stroke.color = outline
-        ac.stroke.strokeWidth = maxOf(3f, radius * 0.3f) * 2
-        c.drawPath(path, ac.stroke)
-        c.drawCircle(cx, cy, radius, ac.stroke)
-        ac.fill.color = color
-        c.drawPath(path, ac.fill)
+    /** The player: the game's own map figure when it could be read, else a plain dot. No facing. */
+    private fun drawPlayer(c: Canvas, cx: Float, cy: Float, u: Float, m: TownMapState) {
+        val art = m.playerArt
+        val bmp = art?.let { playerBitmapFor(it) }
+        if (art != null && bmp != null) {
+            val half = art.units * u / 2
+            bitmapPaint.isFilterBitmap = u * pageScale < FILTER_BELOW_U
+            rect.set(cx - half, cy - half, cx + half, cy + half)
+            c.drawBitmap(bmp, null, rect, bitmapPaint)
+            return
+        }
+        val radius = maxOf(TownMapGeometry.DOT_RADIUS * u, 9f)
+        ac.fill.color = m.markerOutline
+        c.drawCircle(cx, cy, radius + maxOf(3f, radius * 0.3f), ac.fill)
+        ac.fill.color = m.markerColor
         c.drawCircle(cx, cy, radius, ac.fill)
+    }
+
+    private var playerBmp: Bitmap? = null
+    private var playerBmpArt: HouseArt? = null
+
+    private fun playerBitmapFor(a: HouseArt): Bitmap? {
+        if (playerBmpArt === a) return playerBmp
+        playerBmp?.recycle()
+        playerBmp = a.pixels?.let { Bitmap.createBitmap(it, a.w, a.h, Bitmap.Config.ARGB_8888) }
+        playerBmpArt = a
+        return playerBmp
     }
 
     private fun villagerHouseColor(): Int = state.map?.houseArt?.firstOrNull()?.fallbackColor ?: 0xFF3C6FE0.toInt()
@@ -322,7 +284,7 @@ class TownMapView(context: Context, compact: Boolean, showTabs: Boolean, onTab: 
         }
 
         if (p != null) {
-            drawMarker(c, gx + p.mapX * u, gy + p.mapY * u, maxOf(TownMapGeometry.DOT_RADIUS * u, 9f), p.dirX, p.dirY, m)
+            drawPlayer(c, gx + p.mapX * u, gy + p.mapY * u, u, m)
         }
     }
 }

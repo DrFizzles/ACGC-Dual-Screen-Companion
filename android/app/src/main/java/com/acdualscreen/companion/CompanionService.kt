@@ -148,8 +148,8 @@ class CompanionService : Service() {
         val s = sub ?: return
         PollerHub.update(
             s, active = panelVisible(),
-            wantsMap = panelVisible() && panel?.tab == PanelTab.MAP,
-            wantsDaily = panelVisible() && panel?.tab == PanelTab.TRACKER,
+            wantsMap = panelVisible() && panel?.wants(PanelTab.MAP) == true,
+            wantsDaily = panelVisible() && panel?.wants(PanelTab.TRACKER) == true,
         )
     }
 

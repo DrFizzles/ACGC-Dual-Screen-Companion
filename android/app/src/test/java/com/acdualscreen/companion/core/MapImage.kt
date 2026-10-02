@@ -131,6 +131,14 @@ object MapImage {
             }
             mem.u8(dl + t.primOffset + 3, 255).u8(dl + t.envOffset + 3, 255)
         }
+        // The player's map figure: the same made-up icon pattern and the spec's expected colours.
+        s.player.icon?.let { pi ->
+            mem.raw(pi.addr, ia4Icon())
+            for (c in 0 until 3) {
+                mem.u8(pi.displayListAddr + pi.primOffset + c, (pi.expectedPrim shr (16 - 8 * c)) and 0xFF)
+                mem.u8(pi.displayListAddr + pi.envOffset + c, (pi.expectedEnv shr (16 - 8 * c)) and 0xFF)
+            }
+        }
         fun entry(e: Int, fg: Int, vararg slots: Int) {
             val o = vh.posListAddr + e.toLong() * vh.posEntryLen
             mem.u16(o + vh.fgNameOffset, fg)

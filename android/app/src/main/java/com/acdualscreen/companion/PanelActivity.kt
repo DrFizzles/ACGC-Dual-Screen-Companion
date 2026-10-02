@@ -41,7 +41,7 @@ class PanelActivity : Activity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         root = PanelRoot(this, compact = false, showTabs = true, initial = Prefs.loadTab(this, TAB_KEY)) { tab ->
             Prefs.saveTab(this, TAB_KEY, tab)
-            sub?.let { PollerHub.update(it, wantsMap = tab == PanelTab.MAP, wantsDaily = tab == PanelTab.TRACKER) }
+            sub?.let { PollerHub.update(it, wantsMap = root.wants(PanelTab.MAP), wantsDaily = root.wants(PanelTab.TRACKER)) }
         }
         root.setOnApplyWindowInsetsListener { v, insets ->
             val b = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
@@ -56,7 +56,7 @@ class PanelActivity : Activity() {
         // The footer follows the settings the shared poller actually uses (it restarts when they
         // changed, here or later from the settings screen).
         sub = PollerHub.subscribe(
-            this, active = true, wantsMap = root.tab == PanelTab.MAP, wantsDaily = root.tab == PanelTab.TRACKER,
+            this, active = true, wantsMap = root.wants(PanelTab.MAP), wantsDaily = root.wants(PanelTab.TRACKER),
             onPrefs = { p -> root.setFooter("${p.connectionLabel()} · panel window") },
             onState = { root.setState(it) },
         )

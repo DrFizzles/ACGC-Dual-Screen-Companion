@@ -151,6 +151,22 @@ class MapSpec(
 
     class Check(val offset: Long, val type: FieldType, val equals: Long)
 
+    /** player.icon: the figure the game's map draws for the player, tinted like the house icons. */
+    class PlayerIcon(
+        val addr: Long,
+        val format: GcFormat,
+        val w: Int,
+        val h: Int,
+        val size: Int,
+        val units: Int,
+        val displayListAddr: Long,
+        val primOffset: Int,
+        val envOffset: Int,
+        val colorLen: Int,
+        val expectedPrim: Int,
+        val expectedEnv: Int,
+    )
+
     class Player(
         val chain: List<ChainStep>,
         val actorChecks: List<Check>,
@@ -173,6 +189,8 @@ class MapSpec(
         val highlightColor: Int,
         val nextSceneAddr: Long?,
         val exitPositionAddr: Long?,
+        /** The game's player figure; null = draw the original dot. */
+        val icon: PlayerIcon? = null,
     ) {
         /** The last chain step: the actor pointer the position and checks are relative to. */
         val actorStep: String get() = chain.last().step
@@ -395,6 +413,21 @@ class MapSpec(
                 highlightColor = parseColor(p.optJSONObject("acre_highlight")?.optString("color") ?: "") ?: 0xFFFF00E6.toInt(),
                 nextSceneAddr = indoor?.optJSONObject("next_scene")?.let { addrOf(it) },
                 exitPositionAddr = indoor?.optJSONObject("exit_position")?.let { addrOf(it) },
+                icon = p.optJSONObject("icon")?.let { ic ->
+                    runCatching {
+                        PlayerIcon(
+                            addr = long(ic, "addr"),
+                            format = GcFormat.parse(ic.getString("format")) ?: throw SpecException("player icon format"),
+                            w = int(ic, "width"), h = int(ic, "height"), size = int(ic, "size"),
+                            units = int(ic, "map_size_units"),
+                            displayListAddr = long(ic, "display_list_addr"),
+                            primOffset = int(ic, "prim_offset"), envOffset = int(ic, "env_offset"),
+                            colorLen = int(ic, "color_len"),
+                            expectedPrim = rgb(ic.getJSONArray("expected_prim")),
+                            expectedEnv = rgb(ic.getJSONArray("expected_env")),
+                        ).takeIf { it.format.byteSize(it.w, it.h) == it.size }
+                    }.getOrNull()
+                },
             )
             if (player.worldUnitsPerAcre <= 0f || player.fullTurn <= 0) throw SpecException("map.player: bad transform")
 

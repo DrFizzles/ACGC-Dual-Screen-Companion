@@ -580,6 +580,8 @@ MAP_VERIFIED_LIVE = {
     "kan_tizu1_pal": 0x806CDC60,
     "kan_tizu2_pal": 0x806CDC80,
     "kan_win_yane_tex": 0x80AFBBE0,
+    "kan_win_play_tex": 0x80AFBEE0,     # the map's "you are here" figure (dump of the live game)
+    "kan_win_genzaiT_model": 0x80AFC320,  # +0x14 PRIM (80,50,50), +0x1C ENV (255,70,30), +0x24 -> kan_win_play_tex
     "kan_win_npc2T_1_model": 0x80AFC3A0,  # +4 PRIM, +12 ENV (G_SETPRIMCOLOR / G_SETENVCOLOR words)
     "kan_win_npc2T_2_model": 0x80AFC3C0,
     "kan_win_npc2T_3_model": 0x80AFC3E0,
@@ -617,6 +619,7 @@ def build_map(decomp, syms):
     assert syms["data_combi_table"][1] == 368 * 6 and syms["mMP_house_pos_list"][1] == 202 * 12
     assert syms["l_block_type"][1] == 70 and syms["l_block_kind"][1] == 70 * 4
     assert syms["kan_win_yane_tex"][1] == 0x100 and syms["kan_win_npc2T_table"][1] == 12
+    assert syms["kan_win_play_tex"][1] == 0x100 and syms["kan_win_genzaiT_model"][1] == 0x48
     for name, addr in MAP_VERIFIED_LIVE.items():
         assert A(name) == addr, "%s: symbols.txt gives 0x%08X, live 0x%08X" % (name, A(name), addr)
 
@@ -804,10 +807,19 @@ def build_map(decomp, syms):
                 "note": "plus every chain/actor check and validity rules 1-5; hide the marker otherwise "
                         "(the island is scene 7 too, at block_z 8, so the block range hides it). "
                         "Read twice and accept when both reads agree (validity rule 8)."},
+            "icon": {"kind": "ram_texture", "addr": h(A("kan_win_play_tex"), 8), "format": "IA4",
+                     "width": 16, "height": 16, "size": 0x100, "map_size_units": 10,
+                     "display_list_addr": h(A("kan_win_genzaiT_model"), 8), "prim_offset": "0x14",
+                     "env_offset": "0x1C", "color_len": 4, "expected_prim": [80, 50, 50],
+                     "expected_env": [255, 70, 30], "status": LIVE,
+                     "tint": "rgb = env + (prim - env) * I / 255, alpha = A (combiner of kan_win_genzaiT_model)",
+                     "note": "the figure the game's map draws for the player (kan_win_genzaiT_model, m_map_ovl.c:1045-1052). "
+                             "Draw it centred on (map_x, map_y); it has no facing. If the colours read do not "
+                             "match expected_*, use expected_*; if the texture is unreadable, draw marker instead."},
             "marker": {"kind": "original_marker", "shape": "dot_with_arrow", "color": "#FF2D2D",
                        "outline": "#FFFFFF",
-                       "note": "dot at (map_x, map_y), small arrow along map_vector. Never a character "
-                               "sprite."},
+                       "note": "fallback when icon is unavailable: a dot at (map_x, map_y), small arrow "
+                               "along map_vector"},
             "acre_highlight": {"kind": "original_marker", "shape": "box", "color": "#FF00E6",
                                "note": "outline the acre (block_x, block_z), in the spirit of the "
                                        "game's magenta cursor"},
@@ -1126,6 +1138,7 @@ def validate_map(m):
             "pluss_bridge": at["pluss_bridge"]["addr"], "l_kan_tizu_pal": pal["pointer_table"]["addr"],
             "kan_tizu1_pal": pal["expected_pointers"][0], "kan_tizu2_pal": pal["expected_pointers"][1],
             "kan_win_yane_tex": vh["addr"],
+            "kan_win_play_tex": p["icon"]["addr"], "kan_win_genzaiT_model": p["icon"]["display_list_addr"],
             "mMP_house_pos_list": m["villager_houses"]["slot_rule"]["house_pos_list"]["addr"]}
     live.update({"kan_win_npc2T_%d_model" % (t["tier"] + 1): t["display_list_addr"]
                  for t in m["villager_houses"]["tiers"]})

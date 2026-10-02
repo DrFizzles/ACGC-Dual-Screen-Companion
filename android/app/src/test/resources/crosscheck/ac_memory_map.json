@@ -2002,12 +2002,38 @@
     "block_z_max": 6,
     "note": "plus every chain/actor check and validity rules 1-5; hide the marker otherwise (the island is scene 7 too, at block_z 8, so the block range hides it). Read twice and accept when both reads agree (validity rule 8)."
    },
+   "icon": {
+    "kind": "ram_texture",
+    "addr": "0x80AFBEE0",
+    "format": "IA4",
+    "width": 16,
+    "height": 16,
+    "size": 256,
+    "map_size_units": 10,
+    "display_list_addr": "0x80AFC320",
+    "prim_offset": "0x14",
+    "env_offset": "0x1C",
+    "color_len": 4,
+    "expected_prim": [
+     80,
+     50,
+     50
+    ],
+    "expected_env": [
+     255,
+     70,
+     30
+    ],
+    "status": "verified_live",
+    "tint": "rgb = env + (prim - env) * I / 255, alpha = A (combiner of kan_win_genzaiT_model)",
+    "note": "the figure the game's map draws for the player (kan_win_genzaiT_model, m_map_ovl.c:1045-1052). Draw it centred on (map_x, map_y); it has no facing. If the colours read do not match expected_*, use expected_*; if the texture is unreadable, draw marker instead."
+   },
    "marker": {
     "kind": "original_marker",
     "shape": "dot_with_arrow",
     "color": "#FF2D2D",
     "outline": "#FFFFFF",
-    "note": "dot at (map_x, map_y), small arrow along map_vector. Never a character sprite."
+    "note": "fallback when icon is unavailable: a dot at (map_x, map_y), small arrow along map_vector"
    },
    "acre_highlight": {
     "kind": "original_marker",
