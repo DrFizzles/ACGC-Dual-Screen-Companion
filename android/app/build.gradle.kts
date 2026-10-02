@@ -10,8 +10,8 @@ android {
         applicationId = "com.acdualscreen.companion"
         minSdk = 30
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0-poc"
+        versionCode = 5
+        versionName = "alpha-0.0.5"
     }
 
     compileOptions {
